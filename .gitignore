@@ -1,0 +1,11 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.DS_Store
+
+# VScode stuff
+.vscode/
+
+# Interim results
+LDCP/results/
