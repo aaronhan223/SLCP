@@ -176,7 +176,7 @@ def run_experiments_cqr(quantile_estimator, local, method, k=50):
     # display the results
     plot_func(x=x_test,y=y_test,y_u=y_upper,y_l=y_lower,pred=pred,shade_color=cqr_color,
         method_name=method+":",title="",
-        filename="./" + method + "_sim_3.png",save_figures=True)
+        filename="./results/" + method + "_sim_3.png", save_figures=True)
 
     # compute and display the average coverage
     in_the_range = np.sum((y_test >= y_lower) & (y_test <= y_upper))
