@@ -53,10 +53,10 @@ def CV_quntiles_rf(params,
     best_avg_length = 1e10
     best_q = grid_q[0]
 
-    rf = RandomForestQuantileRegressor(random_state=params["random_state"],
-                                       min_samples_leaf=params["min_samples_leaf"],
-                                       n_estimators=params["n_estimators"],
-                                       max_features=params["max_features"])
+    rf = RandomForestQuantileRegressor(random_state=params.random_state,
+                                       min_samples_leaf=params.min_samples_leaf,
+                                       n_estimators=params.n_estimators,
+                                       max_features=params.max_features)
     rf.fit(X_train, y_train)
 
     for q in grid_q:

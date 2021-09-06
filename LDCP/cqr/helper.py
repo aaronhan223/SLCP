@@ -633,10 +633,10 @@ class QuantileForestRegressorAdapter(RegressorAdapter):
         self.quantiles = quantiles
         self.cv_quantiles = self.quantiles
         self.params = params
-        self.rfqr = RandomForestQuantileRegressor(random_state=params["random_state"],
-                                                  min_samples_leaf=params["min_samples_leaf"],
-                                                  n_estimators=params["n_estimators"],
-                                                  max_features=params["max_features"])
+        self.rfqr = RandomForestQuantileRegressor(random_state=params.random_state,
+                                                  min_samples_leaf=params.min_samples_leaf,
+                                                  n_estimators=params.n_estimators,
+                                                  max_features=params.max_features)
 
     def fit(self, x, y):
         """ Fit the model to data
@@ -648,22 +648,22 @@ class QuantileForestRegressorAdapter(RegressorAdapter):
         y : numpy array of training labels (n)
 
         """
-        if self.params["CV"]:
+        if self.params.cross_valid:
             target_coverage = self.quantiles[1] - self.quantiles[0]
-            coverage_factor = self.params["coverage_factor"]
-            range_vals = self.params["range_vals"]
-            num_vals = self.params["num_vals"]
-            grid_q_low = np.linspace(self.quantiles[0],self.quantiles[0]+range_vals,num_vals).reshape(-1,1)
-            grid_q_high = np.linspace(self.quantiles[1],self.quantiles[1]-range_vals,num_vals).reshape(-1,1)
-            grid_q = np.concatenate((grid_q_low,grid_q_high),1)
+            coverage_factor = self.params.coverage_factor
+            range_vals = self.params.range_vals
+            num_vals = self.params.num_vals
+            grid_q_low = np.linspace(self.quantiles[0], self.quantiles[0] + range_vals,num_vals).reshape(-1, 1)
+            grid_q_high = np.linspace(self.quantiles[1], self.quantiles[1] - range_vals,num_vals).reshape(-1, 1)
+            grid_q = np.concatenate((grid_q_low,grid_q_high), 1)
 
             self.cv_quantiles = tune_params_cv.CV_quntiles_rf(self.params,
                                                               x,
                                                               y,
                                                               target_coverage,
                                                               grid_q,
-                                                              self.params["test_ratio"],
-                                                              self.params["random_state"],
+                                                              self.params.test_ratio,
+                                                              self.params.random_state,
                                                               coverage_factor)
 
         self.rfqr.fit(x, y)
