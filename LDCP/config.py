@@ -25,7 +25,7 @@ class UtilsParams:
     n_test = 5000 # number of test examples (to evaluate average coverage and length)
     max_show = 1000 # maximal number of testpoints to plot
     save_figures = True
-    seed = 0
+    seed = 1
 
     split_color = 'tomato'
     local_color = 'gray'
