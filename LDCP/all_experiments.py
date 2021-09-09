@@ -57,9 +57,9 @@ def run_pred_experiment(dataset_name, model_name, method_name, random_seed):
     plot_pred(x=X_test, y=y_test, y_u=y_upper, y_l=y_lower, pred=pred, shade_color=config.UtilsParams.cqr_color, method_name=method_name + ":", title="",
                 filename=os.path.join('./results', method_name + '_' + dataset_name), save_figures=config.UtilsParams.save_figures)
     in_the_range = np.sum((y_test >= y_lower) & (y_test <= y_upper))
-    print(method_name + " Random Forests: Percentage in the range (expecting " + str(100 * (1 - config.ConformalParams.alpha)) + "%):", in_the_range / len(y_test) * 100)
+    print(method_name + model_name + " : Percentage in the range (expecting " + str(100 * (1 - config.ConformalParams.alpha)) + "%):", in_the_range / len(y_test) * 100)
     length_cqr_rf = y_upper - y_lower
-    print(method_name + " Random Forests: Average length:", np.mean(length_cqr_rf))
+    print(method_name + model_name + " : Average length:", np.mean(length_cqr_rf))
 
 
 def model_bias_study(gamma, random_seed):
