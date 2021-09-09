@@ -1,9 +1,19 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import random
 import config
+import torch
 
 
-def plot_func(x, y, y_u=None, y_l=None, pred=None, shade_color="", method_name="", title="", filename=None, save_figures=True):
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+
+def plot_pred(x, y, y_u=None, y_l=None, pred=None, shade_color="", method_name="", title="", filename=None, save_figures=True):
     
     """ Scatter plot of (x,y) points along with the constructed prediction interval 
     
@@ -21,14 +31,14 @@ def plot_func(x, y, y_u=None, y_l=None, pred=None, shade_color="", method_name="
     
     """
     
-    x_ = x[:config.UtilsParams.max_show]
-    y_ = y[:config.UtilsParams.max_show]
+    x_ = x[:config.DataParams.max_show]
+    y_ = y[:config.DataParams.max_show]
     if y_u is not None:
-        y_u_ = y_u[:config.UtilsParams.max_show]
+        y_u_ = y_u[:config.DataParams.max_show]
     if y_l is not None:
-        y_l_ = y_l[:config.UtilsParams.max_show]
+        y_l_ = y_l[:config.DataParams.max_show]
     if pred is not None:
-        pred_ = pred[:config.UtilsParams.max_show]
+        pred_ = pred[:config.DataParams.max_show]
 
     fig = plt.figure()
     inds = np.argsort(np.squeeze(x_))
@@ -54,4 +64,52 @@ def plot_func(x, y, y_u=None, y_l=None, pred=None, shade_color="", method_name="
     plt.title(title)
     if save_figures and (filename is not None):
         plt.savefig(filename, bbox_inches='tight', dpi=300)
+    plt.close()
+
+
+def plot_model_bias(length_vals, length_local_vals, gamma_vals, k, n_sample):
+    keys = ['c', 'd']
+    colors = {'c': '#D05A6E', 'd': '#3A8FB7'}
+    legends = {'c': 'CQR', 'd': 'LDCP'}
+    markers = {'c': 'o', 'd': 'o'}
+    linestyles = {'c': 'solid', 'd': 'solid'}
+    plt.rcParams["figure.figsize"] = (10, 8.5)
+
+    data = {'c': length_vals, 'd': length_local_vals}
+    for key in keys:
+        plt.plot(gamma_vals, data[key], label=legends[key], color=colors[key], lw=8, ls=linestyles[key], zorder=1)
+    plt.legend(loc='upper left', fontsize=27, fancybox=True)
+    plt.xlim([-.01, 1.01])
+    plt.xticks(np.linspace(0, 1, 6), fontsize=23)
+    plt.ylim([1.79, 3.41])
+    plt.yticks(np.linspace(1.8, 3.4, 5), fontsize=23)
+    plt.grid()
+    plt.xlabel(r'$\gamma$', fontsize=26)
+    plt.ylabel('Interval Length', fontsize=26)
+    plt.title('Impact of Model Bias'.format(k, n_sample), fontsize=30)
+    plt.savefig('./results/model_bias={}_n={}.pdf'.format(k, n_sample))
+    plt.close()
+
+
+def plot_cov_shift(length_vals, length_local_vals, gamma_vals, k, n_sample):
+    keys = ['c', 'd']
+    colors = {'c': '#D05A6E', 'd': '#3A8FB7'}
+    legends = {'c': 'CQR', 'd': 'LDCP'}
+    markers = {'c': 'o', 'd': 'o'}
+    linestyles = {'c': 'solid', 'd': 'solid'}
+    plt.rcParams["figure.figsize"] = (10, 8.5)
+
+    data = {'c': length_vals, 'd': length_local_vals}
+    for key in keys:
+        plt.plot(gamma_vals[::-1], data[key], label=legends[key], color=colors[key], lw=8, ls=linestyles[key], zorder=1)
+    plt.legend(loc='upper left', fontsize=27, fancybox=True)
+    plt.xlim([-.01, 1.01])
+    plt.xticks(np.linspace(0, 1, 6), fontsize=23)
+    plt.ylim([74, 96])
+    plt.yticks(np.linspace(75, 95, 5), fontsize=23)
+    plt.grid()
+    plt.xlabel('Degree of Covariate Shift', fontsize=26)
+    plt.ylabel('Coverage Rate', fontsize=26)
+    plt.title('Impact of Covariate Shift'.format(k, n_sample), fontsize=30)
+    plt.savefig('./results/cov_k={}_n={}.pdf'.format(k, n_sample))
     plt.close()

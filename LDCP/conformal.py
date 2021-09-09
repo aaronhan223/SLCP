@@ -1,6 +1,6 @@
 from cqr import helper
 from nonconformist.nc import RegressorNc
-from nonconformist.icp import IcpRegressor
+from nonconformist.cp import IcpRegressor
 from nonconformist.nc import QuantileRegErrFunc, QuantileRegAsymmetricErrFunc, RegressorNormalizer, AbsErrorErrFunc
 from sklearn.ensemble import RandomForestRegressor
 import config
@@ -14,28 +14,27 @@ class ConformalPred:
 
     Parameters
     ----------
-    ratio: float, proportion of training data used to ocalibrate
+    ratio: float, proportion of training data used to calibrate
     """
-    def __init__(self, model, method, ratio, x_train, x_test, y_train, y_test, k=300) -> None:
+    def __init__(self, model, method, ratio, x_train, x_test, y_train, y_test, model_2=None, gamma=1., k=300) -> None:
         self.x_train = x_train
         self.x_test = x_test
         self.y_train = y_train
         self.y_test = y_test
-        self.k = k
 
         if method == 'ldcp':
             local = True
-            nc = RegressorNc(model, local, self.k, err_func=QuantileRegAsymmetricErrFunc(), alpha=config.ConformalParams.alpha)
+            nc = RegressorNc(model, local, k, err_func=QuantileRegAsymmetricErrFunc(), alpha=config.ConformalParams.alpha, model_2=model_2, gamma=gamma)
         elif method == 'cqr':
             local = False
-            nc = RegressorNc(model, local, self.k, err_func=QuantileRegErrFunc(), alpha=config.ConformalParams.alpha)
+            nc = RegressorNc(model, local, k, err_func=QuantileRegErrFunc(), alpha=config.ConformalParams.alpha, model_2=model_2, gamma=gamma)
         else:
             local = False
-            nc = RegressorNc(model, local, self.k, err_func=AbsErrorErrFunc(), alpha=config.ConformalParams.alpha)
-        self.icp = IcpRegressor(nc, local, self.k, significance=config.ConformalParams.alpha)
+            nc = RegressorNc(model, local, k, err_func=AbsErrorErrFunc(), alpha=config.ConformalParams.alpha)
+        self.icp = IcpRegressor(nc, local, k, significance=config.ConformalParams.alpha)
         
-        idx = np.random.permutation(config.UtilsParams.n_train)
-        n_half = int(np.floor(config.UtilsParams.n_train * ratio))
+        idx = np.random.permutation(config.DataParams.n_train)
+        n_half = int(np.floor(config.DataParams.n_train * ratio))
         self.idx_train, self.idx_cal = idx[:n_half], idx[n_half:]
 
     def fit(self):

@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from scipy.stats import beta
 import config
 
 
@@ -22,6 +23,11 @@ class simulation:
         x = np.random.poisson(np.sin(x) ** 2 + 0.1) + 0.08 * x * np.random.randn(1)
         x += 25 * (np.random.uniform(0, 1, 1) < 0.01) * np.random.randn(1)
         return x
+    
+    def f(self, x):
+        x = np.random.poisson(np.sin(x) ** 2 + 0.1) + 0.03 * x * np.random.randn(1)
+        x += 25 * (np.random.uniform(0, 1, 1) < 0.01) * np.random.randn(1)
+        return x
 
     def generate(self, data):
         y = 0 * data
@@ -30,27 +36,72 @@ class simulation:
                 y[i] = self.f_1(data[i])
             elif self.rank == 2:
                 y[i] = self.f_2(data[i])
-            else:
+            elif self.rank == 3:
                 y[i] = self.f_3(data[i])
+            else:
+                y[i] = self.f(data[i])
         return y.astype(np.float32)
 
 
-def GetDataset(name, path):
+class GaussianDataGenerator(object):
+    def __init__(self, px_model, mu_model, sigma_model):
+        self.px_model = px_model
+        self.mu_model = mu_model
+        self.sigma_model = sigma_model
+    
+    def generate(self, size, **kwargs):
+        if 'a' in kwargs:
+            a = kwargs.pop('a')
+            b = kwargs.pop('b')
+            X = self.px_model(size, a=a, b=b)
+        else:
+            X = self.px_model(size)
+        Y = self.mu_model(X) + self.sigma_model(X) * np.random.randn(size)
+        return X, Y
+
+
+def px_model(size, **kwargs):
+    if 'a' in kwargs:
+        a = kwargs.pop('a')
+        b = kwargs.pop('b')
+        return config.DataParams.left_interval + (config.DataParams.right_interval - config.DataParams.left_interval) * np.expand_dims(beta.rvs(a, b, size=size), 1)
+    return config.DataParams.left_interval + (config.DataParams.right_interval - config.DataParams.left_interval) * np.random.rand(size, 1)
+
+
+def mu_model(x):
+    k = [1.0]
+    b = -0.0
+    return np.sum(k * x, axis=-1) + b 
+
+
+def sigma_model(x):
+    x_abs = np.abs(x)
+    return (x_abs / (x_abs + 1)).reshape(-1)
+
+
+def GetDataset(name, path, a=1., b=1.):
 
     if 'simulation' in name:
-        x_train = np.random.uniform(0, 5.0, size=config.UtilsParams.n_train).astype(np.float32)
-        x_test = np.random.uniform(0, 5.0, size=config.UtilsParams.n_test).astype(np.float32)
+        x_train = np.random.uniform(0, 5.0, size=config.DataParams.n_train).astype(np.float32)
+        x_test = np.random.uniform(0, 5.0, size=config.DataParams.n_test).astype(np.float32)
 
         if '1' in name:
             sim = simulation(1)
-        if '2' in name:
+        elif '2' in name:
             sim = simulation(2)
-        else:
+        elif '3' in name:
             sim = simulation(3)
+        else:
+            sim = simulation(4)
 
         y_train = sim.generate(x_train)
         y_test = sim.generate(x_test)
-        x_train = np.reshape(x_train,(config.UtilsParams.n_train, 1))
-        x_test = np.reshape(x_test,(config.UtilsParams.n_test, 1))
-        
+        x_train = np.reshape(x_train, (config.DataParams.n_train, 1))
+        x_test = np.reshape(x_test, (config.DataParams.n_test, 1))
+    
+    if name == 'cov_shift':
+        data_model = GaussianDataGenerator(px_model, mu_model, sigma_model)
+        x_train, y_train = data_model.generate(config.DataParams.n_train)
+        x_test, y_test = data_model.generate(config.DataParams.n_test, a=a, b=b)
+
     return x_train, x_test, y_train, y_test

@@ -103,17 +103,14 @@ class BaseIcp(BaseEstimator):
 		"""
 		self._calibrate_hook(x, y, increment)
 		self._update_calibration_set(x, y, increment)
-
 		if self.conditional:
-			category_map = np.array([self.condition((x[i, :], y[i]))
-									 for i in range(y.size)])
+			category_map = np.array([self.condition((x[i, :], y[i])) for i in range(y.size)])
 			self.categories = np.unique(category_map)
 			self.cal_scores = defaultdict(partial(np.ndarray, 0))
 
 			for cond in self.categories:
 				idx = category_map == cond
-				cal_scores = self.nc_function.score(self.cal_x[idx, :],
-				                                    self.cal_y[idx])
+				cal_scores = self.nc_function.score(self.cal_x[idx, :], self.cal_y[idx])
 				self.cal_scores[cond] = np.sort(cal_scores,0)[::-1]
 		else:
 			self.categories = np.array([0])
@@ -419,7 +416,6 @@ class IcpRegressor(BaseIcp, RegressorMixin):
 
 		condition_map = np.array([self.condition((x[i, :], None))
 		                          for i in range(x.shape[0])])
-
 		for condition in self.categories:
 			idx = condition_map == condition
 			if np.sum(idx) > 0:
