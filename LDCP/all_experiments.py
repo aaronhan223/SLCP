@@ -27,15 +27,28 @@ def run_pred_experiment(dataset_name, model_name, method_name, random_seed):
         print("CANNOT LOAD DATASET!")
         return
 
-    if model_name == 'random_forest' and method_name == 'split':
-        model = RandomForestRegressor(n_estimators=config.RandomForecastParams.n_estimators, 
-                                      min_samples_leaf=config.RandomForecastParams.min_samples_leaf,
-                                      max_features=config.RandomForecastParams.max_features, 
-                                      random_state=config.RandomForecastParams.random_state)
-    elif model_name == 'random_forest':
-        model = helper.QuantileForestRegressorAdapter(model=None, fit_params=None, quantiles=config.ConformalParams.quantiles, params=config.RandomForecastParams)
+    if model_name == 'random_forest':
+        if method_name == 'split':
+            model = RandomForestRegressor(n_estimators=config.RandomForecastParams.n_estimators, 
+                                          min_samples_leaf=config.RandomForecastParams.min_samples_leaf,
+                                          max_features=config.RandomForecastParams.max_features, 
+                                          random_state=config.RandomForecastParams.random_state)
+        else:
+            model = helper.QuantileForestRegressorAdapter(model=None, 
+                                                          fit_params=None, 
+                                                          quantiles=config.ConformalParams.quantiles, 
+                                                          params=config.RandomForecastParams)
     elif model_name == 'linear_regression':
-        model = helper.Linear_RegressorAdapter(model=None)
+        if method_name == 'split':
+            model = helper.MSELR_RegressorAdapter(model=None)
+        else:
+            model = helper.Linear_RegressorAdapter(model=None)
+
+    elif model_name == 'neural_network':
+        if method_name == 'split':
+            model = helper.MSENet_RegressorAdapter(model=None)
+        else:
+            model = helper.AllQNet_RegressorAdapter(model=None)
 
     cp = ConformalPred(model=model, method=method_name, ratio=0.5, x_train=X_train, x_test=X_test, y_train=y_train, y_test=y_test, k=300)
     cp.fit()

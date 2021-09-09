@@ -7,7 +7,7 @@ Inductive conformal predictors.
 from __future__ import division
 from collections import defaultdict
 from functools import partial
-
+import config
 import numpy as np
 from sklearn.base import BaseEstimator
 import pdb
@@ -116,8 +116,8 @@ class BaseIcp(BaseEstimator):
 			self.categories = np.array([0])
 			cal_scores = self.nc_function.score(self.cal_x, self.cal_y)
 			if self.local:
-				alpha_hi = 0.95
-				alpha_lo = 0.95
+				alpha_hi = 1 - config.ConformalParams.alpha / 2
+				alpha_lo = 1 - config.ConformalParams.alpha / 2
 				idx = self.knn(x)
 				err_ref = np.sort(self.error_ref[idx], 1)
 				err_ref_q = np.zeros((err_ref.shape[0], err_ref.shape[2]))

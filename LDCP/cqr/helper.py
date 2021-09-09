@@ -368,6 +368,84 @@ class MSENet_RegressorAdapter(RegressorAdapter):
         """
         return self.learner.predict(x)
 
+
+class MSELR_RegressorAdapter(RegressorAdapter):
+    """ Conditional mean estimator, formulated as linear regression
+    """
+    def __init__(self,
+                 model,
+                 fit_params=None,
+                 in_shape=1,
+                 learn_func=torch.optim.Adam,
+                 epochs=1000,
+                 batch_size=10,
+                 lr=0.01,
+                 wd=1e-6,
+                 test_ratio=0.2,
+                 random_state=0):
+
+        """ Initialization
+
+        Parameters
+        ----------
+        model : unused parameter (for compatibility with nc class)
+        fit_params : unused parameter (for compatibility with nc class)
+        in_shape : integer, input signal dimension
+        hidden_size : integer, hidden layer dimension
+        learn_func : class of Pytorch's SGD optimizer
+        epochs : integer, maximal number of epochs
+        batch_size : integer, mini-batch size for SGD
+        dropout : float, dropout rate
+        lr : float, learning rate for SGD
+        wd : float, weight decay
+        test_ratio : float, ratio of held-out data, used in cross-validation
+        random_state : integer, seed for splitting the data in cross-validation
+
+        """
+        super(MSELR_RegressorAdapter, self).__init__(model, fit_params)
+        # Instantiate model
+        self.epochs = epochs
+        self.batch_size = batch_size
+        self.lr = lr
+        self.wd = wd
+        self.test_ratio = test_ratio
+        self.random_state = random_state
+        self.model = torch_models.lr_mse_model(in_shape=in_shape)
+        self.loss_func = torch.nn.MSELoss()
+        self.learner = torch_models.LearnerOptimized(self.model,
+                                                     partial(learn_func, lr=lr, weight_decay=wd),
+                                                     self.loss_func,
+                                                     device=device,
+                                                     test_ratio=self.test_ratio,
+                                                     random_state=self.random_state)
+
+    def fit(self, x, y):
+        """ Fit the model to data
+
+        Parameters
+        ----------
+
+        x : numpy array of training features (nXp)
+        y : numpy array of training labels (n)
+
+        """
+        self.learner.fit(x, y, self.epochs, batch_size=self.batch_size)
+
+    def predict(self, x):
+        """ Estimate the label given the features
+
+        Parameters
+        ----------
+        x : numpy array of training features (nXp)
+
+        Returns
+        -------
+        ret_val : numpy array of predicted labels (n)
+
+        """
+        return self.learner.predict(x)
+
+
 ###############################################################################
 # Deep neural network for conditional quantile regression
 # Minimizing pinball loss
@@ -481,7 +559,6 @@ class Linear_RegressorAdapter(RegressorAdapter):
                  model,
                  fit_params=None,
                  in_shape=1,
-                 hidden_size=1,
                  quantiles=[.05, .95],
                  learn_func=torch.optim.Adam,
                  epochs=100,
