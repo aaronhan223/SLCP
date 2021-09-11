@@ -216,8 +216,8 @@ class QuantileRegErrFunc(RegressionErrFunc):
         super(QuantileRegErrFunc, self).__init__()
 
     def apply(self, prediction, y):
-        y_lower = prediction[:,0]
-        y_upper = prediction[:,-1]
+        y_lower = prediction[:, 0]
+        y_upper = prediction[:, -1]
         error_low = y_lower - y
         error_high = y - y_upper
         err = np.maximum(error_high, error_low)
@@ -473,7 +473,7 @@ class BaseModelNc(BaseScorer):
 		if prediction.ndim > 1:
 		    ret_val = self.err_func.apply(prediction, y)
 		else:
-		    ret_val = self.err_func.apply(prediction, y) / norm
+			ret_val = self.err_func.apply(prediction, y) / norm
 		return ret_val
 
 

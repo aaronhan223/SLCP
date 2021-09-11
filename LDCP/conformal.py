@@ -28,6 +28,10 @@ class ConformalPred:
         elif method == 'cqr':
             local = False
             nc = RegressorNc(model, local, k, err_func=QuantileRegErrFunc(), alpha=config.ConformalParams.alpha, model_2=model_2, gamma=gamma)
+        elif method == 'lacp':
+            local = False
+            normalizer = RegressorNormalizer(model, model, AbsErrorErrFunc())
+            nc = RegressorNc(model, local, k, err_func=AbsErrorErrFunc(), alpha=config.ConformalParams.alpha, normalizer=normalizer)
         else:
             local = False
             nc = RegressorNc(model, local, k, err_func=AbsErrorErrFunc(), alpha=config.ConformalParams.alpha)
