@@ -9,6 +9,7 @@ from __future__ import division
 import abc
 import numpy as np
 import sklearn.base
+import config
 import pdb
 from nonconformist.base import ClassifierAdapter, RegressorAdapter
 from nonconformist.base import OobClassifierAdapter, OobRegressorAdapter
@@ -215,8 +216,8 @@ class QuantileRegErrFunc(RegressionErrFunc):
         super(QuantileRegErrFunc, self).__init__()
 
     def apply(self, prediction, y):
-        y_lower = prediction[:,0]
-        y_upper = prediction[:,-1]
+        y_lower = prediction[:, 0]
+        y_upper = prediction[:, -1]
         error_low = y_lower - y
         error_high = y - y_upper
         err = np.maximum(error_high, error_low)
@@ -472,7 +473,7 @@ class BaseModelNc(BaseScorer):
 		if prediction.ndim > 1:
 		    ret_val = self.err_func.apply(prediction, y)
 		else:
-		    ret_val = self.err_func.apply(prediction, y) / norm
+			ret_val = self.err_func.apply(prediction, y) / norm
 		return ret_val
 
 
@@ -631,8 +632,8 @@ class RegressorNc(BaseModelNc):
 			intervals = np.zeros((x.shape[0], 2))
 			# err_dist = self.err_func.apply_inverse(nc, significance) # FIXME: assymetric
 			if self.local:
-				alpha_hi = 0.95
-				alpha_lo = 0.95
+				alpha_hi = 1 - config.ConformalParams.alpha / 2
+				alpha_lo = 1 - config.ConformalParams.alpha / 2
 				idx = self.knn(x)
 				err_ref = np.sort(self.error_ref[idx], 1)
 				err_ref_q = np.zeros((err_ref.shape[0], err_ref.shape[2]))

@@ -152,6 +152,50 @@ class mse_model(nn.Module):
         """
         return torch.squeeze(self.base_model(x))
 
+
+class lr_mse_model(nn.Module):
+    """ Conditional mean estimator, formulated as linear regression
+    """
+
+    def __init__(self, in_shape=1):
+        """ Initialization
+
+        Parameters
+        ----------
+
+        in_shape : integer, input signal dimension (p)
+        hidden_size : integer, hidden layer dimension
+        dropout : float, dropout rate
+
+        """
+
+        super().__init__()
+        self.in_shape = in_shape
+        self.out_shape = 1
+        self.build_model()
+        self.init_weights()
+
+    def build_model(self):
+        """ Construct the network
+        """
+        self.base_model = nn.Sequential(
+            nn.Linear(self.in_shape, self.out_shape)
+        )
+
+    def init_weights(self):
+        """ Initialize the network parameters
+        """
+        for m in self.base_model:
+            if isinstance(m, nn.Linear):
+                nn.init.orthogonal_(m.weight)
+                nn.init.constant_(m.bias, 0)
+
+    def forward(self, x):
+        """ Run forward pass
+        """
+        return torch.squeeze(self.base_model(x))
+
+
 # Define the training procedure
 class LearnerOptimized:
     """ Fit a neural network (conditional mean) to training data

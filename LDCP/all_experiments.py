@@ -22,31 +22,44 @@ def run_pred_experiment(dataset_name, model_name, method_name, random_seed):
 
     set_seed(random_seed)
     try:
-        X_train, X_test, y_train, y_test = datasets.GetDataset(dataset_name, base_dataset_path)
+        X_train, X_test, y_train, y_test = datasets.GetDataset(dataset_name, base_dataset_path, random_seed, config.DataParams.test_ratio)
     except:
         print("CANNOT LOAD DATASET!")
         return
 
-    if model_name == 'random_forest' and method_name == 'split':
-        model = RandomForestRegressor(n_estimators=config.RandomForecastParams.n_estimators, 
-                                      min_samples_leaf=config.RandomForecastParams.min_samples_leaf,
-                                      max_features=config.RandomForecastParams.max_features, 
-                                      random_state=config.RandomForecastParams.random_state)
-    elif model_name == 'random_forest':
-        model = helper.QuantileForestRegressorAdapter(model=None, fit_params=None, quantiles=config.ConformalParams.quantiles, params=config.RandomForecastParams)
+    if model_name == 'random_forest':
+        if method_name in ['split', 'lacp']:
+            model = RandomForestRegressor(n_estimators=config.RandomForecastParams.n_estimators, 
+                                          min_samples_leaf=config.RandomForecastParams.min_samples_leaf,
+                                          max_features=config.RandomForecastParams.max_features, 
+                                          random_state=config.RandomForecastParams.random_state)
+        else:
+            model = helper.QuantileForestRegressorAdapter(model=None, 
+                                                          fit_params=None, 
+                                                          quantiles=config.ConformalParams.quantiles, 
+                                                          params=config.RandomForecastParams)
     elif model_name == 'linear_regression':
-        model = helper.Linear_RegressorAdapter(model=None)
+        if method_name in ['split', 'lacp']:
+            model = helper.MSELR_RegressorAdapter(model=None)
+        else:
+            model = helper.Linear_RegressorAdapter(model=None)
 
-    cp = ConformalPred(model=model, method=method_name, ratio=0.5, x_train=X_train, x_test=X_test, y_train=y_train, y_test=y_test, k=300)
+    elif model_name == 'neural_network':
+        if method_name in ['split', 'lacp']:
+            model = helper.MSENet_RegressorAdapter(model=None)
+        else:
+            model = helper.AllQNet_RegressorAdapter(model=None)
+    cp = ConformalPred(model=model, method=method_name, data_name=dataset_name, ratio=0.5, x_train=X_train, x_test=X_test, y_train=y_train, y_test=y_test, k=300)
     cp.fit()
     y_lower, y_upper = cp.predict()
     pred = model.predict(X_test)
-    plot_pred(x=X_test, y=y_test, y_u=y_upper, y_l=y_lower, pred=pred, shade_color=config.UtilsParams.cqr_color, method_name=method_name + ":", title="",
-                filename=os.path.join('./results', method_name + '_' + dataset_name), save_figures=config.UtilsParams.save_figures)
+    if 'simulation' in dataset_name:
+        plot_pred(x=X_test, y=y_test, y_u=y_upper, y_l=y_lower, pred=pred, shade_color=config.UtilsParams.cqr_color, method_name=method_name + ":", title="",
+                    filename=os.path.join('./results', method_name + '_' + dataset_name), save_figures=config.UtilsParams.save_figures)
     in_the_range = np.sum((y_test >= y_lower) & (y_test <= y_upper))
-    print(method_name + " Random Forests: Percentage in the range (expecting " + str(100 * (1 - config.ConformalParams.alpha)) + "%):", in_the_range / len(y_test) * 100)
+    print(method_name + ' ' + model_name + " : Percentage in the range (expecting " + str(100 * (1 - config.ConformalParams.alpha)) + "%):", in_the_range / len(y_test) * 100)
     length_cqr_rf = y_upper - y_lower
-    print(method_name + " Random Forests: Average length:", np.mean(length_cqr_rf))
+    print(method_name + ' ' +model_name + " : Average length:", np.mean(length_cqr_rf))
 
 
 def model_bias_study(gamma, random_seed):
@@ -90,6 +103,7 @@ def cov_shift_study(a, b, random_seed, k=100):
 
 
 def run_cov_shift(k=100):
+
     a_list = np.linspace(0, 1, 11)
     b_list = np.linspace(0, 1, 11)
     coverage_local_all, coverage_cp_all = [], []
@@ -105,6 +119,7 @@ def run_cov_shift(k=100):
 
 
 def run_model_bias(k=100):
+
     gamma_vals = np.linspace(0, 1, 11)
     length_vals, length_local_vals = [], []
     coverage_vals, coverage_local_vals = [], []
