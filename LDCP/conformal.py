@@ -16,7 +16,7 @@ class ConformalPred:
     ----------
     ratio: float, proportion of training data used to calibrate
     """
-    def __init__(self, model, method, ratio, x_train, x_test, y_train, y_test, model_2=None, gamma=1., k=300) -> None:
+    def __init__(self, model, method, data_name, ratio, x_train, x_test, y_train, y_test, model_2=None, gamma=1., k=300) -> None:
         self.x_train = x_train
         self.x_test = x_test
         self.y_train = y_train
@@ -37,8 +37,12 @@ class ConformalPred:
             nc = RegressorNc(model, local, k, err_func=AbsErrorErrFunc(), alpha=config.ConformalParams.alpha)
         self.icp = IcpRegressor(nc, local, k, significance=config.ConformalParams.alpha)
         
-        idx = np.random.permutation(config.DataParams.n_train)
-        n_half = int(np.floor(config.DataParams.n_train * ratio))
+        if 'simulation' in data_name:
+            n_train = config.DataParams.n_train
+        else:
+            n_train = x_train.shape[0]
+        idx = np.random.permutation(n_train)
+        n_half = int(np.floor(n_train * ratio))
         self.idx_train, self.idx_cal = idx[:n_half], idx[n_half:]
 
     def fit(self):

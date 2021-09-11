@@ -80,7 +80,7 @@ def sigma_model(x):
     return (x_abs / (x_abs + 1)).reshape(-1)
 
 
-def GetDataset(name, base_path, seed, a=1., b=1.):
+def GetDataset(name, base_path, seed, test_ratio, a=1., b=1.):
 
     if 'simulation' in name:
         x_train = np.random.uniform(0, 5.0, size=config.DataParams.n_train).astype(np.float32)
@@ -105,7 +105,7 @@ def GetDataset(name, base_path, seed, a=1., b=1.):
         x_train, y_train = data_model.generate(config.DataParams.n_train)
         x_test, y_test = data_model.generate(config.DataParams.n_test, a=a, b=b)
 
-    if name=="community":
+    if name == "community":
         # https://github.com/vbordalo/Communities-Crime/blob/master/Crime_v1.ipynb
         attrib = pd.read_csv(base_path + 'communities_attributes.csv', delim_whitespace = True)
         data = pd.read_csv(base_path + 'communities.data', names = attrib['attributes'])
