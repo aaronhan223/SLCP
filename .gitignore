@@ -9,3 +9,8 @@ __pycache__/
 
 # Interim results
 LDCP/results/
+
+# Large dataset
+LDCP/datasets/facebook/Features_Variant_1.csv
+LDCP/datasets/facebook/Features_Variant_2.csv
+LDCP/datasets/blogData_train.csv
