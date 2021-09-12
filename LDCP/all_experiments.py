@@ -3,19 +3,19 @@ import sys
 import config
 import numpy as np
 import pandas as pd
-import torch
-import random
 from datasets import datasets
 from conformal import ConformalPred
 from utils import plot_pred, plot_model_bias, plot_cov_shift, set_seed
 from cqr import helper
 from sklearn.ensemble import RandomForestRegressor
 from tqdm import tqdm
+import logging
 import pdb
 
 
 pd.set_option('precision', 3)
 base_dataset_path = './datasets/'
+logger = logging.getLogger('LDCP.experiment')
 
 
 def run_pred_experiment(dataset_name, model_name, method_name, random_seed, conformal):
@@ -24,7 +24,7 @@ def run_pred_experiment(dataset_name, model_name, method_name, random_seed, conf
     try:
         X_train, X_test, y_train, y_test = datasets.GetDataset(dataset_name, base_dataset_path, random_seed, config.DataParams.test_ratio)
     except:
-        print("CANNOT LOAD DATASET!")
+        logger.info("CANNOT LOAD DATASET!")
         return
 
     in_shape = X_train.shape[1]
@@ -65,10 +65,9 @@ def run_pred_experiment(dataset_name, model_name, method_name, random_seed, conf
         plot_pred(x=X_test, y=y_test, y_u=y_upper, y_l=y_lower, pred=pred, shade_color=config.UtilsParams.cqr_color, method_name=method_name + ":", title="",
                     filename=os.path.join('./results', method_name + '_' + dataset_name), save_figures=config.UtilsParams.save_figures)
     in_the_range = np.sum((y_test >= y_lower) & (y_test <= y_upper))
-    # TODO: change method name to more general situation, not cp method name
-    print(method_name + ' ' + model_name + " : Percentage in the range (expecting " + str(100 * (1 - config.ConformalParams.alpha)) + "%):", in_the_range / len(y_test) * 100)
+    logger.info(f'{method_name} {model_name} : Coverage rate (expecting {100 * (1 - config.ConformalParams.alpha)} %): {round(in_the_range / len(y_test) * 100, 2)}')
     length_cqr_rf = y_upper - y_lower
-    print(method_name + ' ' + model_name + " : Average length:", np.mean(length_cqr_rf))
+    logger.info(f'{method_name} {model_name} : Average length: {round(np.mean(length_cqr_rf), 2)}')
 
 
 def model_bias_study(gamma, random_seed):
