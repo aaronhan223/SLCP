@@ -1,6 +1,7 @@
 
 import sys
 import copy
+import pdb
 import torch
 import numpy as np
 import torch.nn as nn
@@ -104,7 +105,7 @@ class mse_model(nn.Module):
     """
 
     def __init__(self,
-                 in_shape=1,
+                 in_shape,
                  hidden_size=64,
                  dropout=0.5):
         """ Initialization
@@ -157,7 +158,7 @@ class lr_mse_model(nn.Module):
     """ Conditional mean estimator, formulated as linear regression
     """
 
-    def __init__(self, in_shape=1):
+    def __init__(self, in_shape):
         """ Initialization
 
         Parameters
@@ -246,8 +247,8 @@ class LearnerOptimized:
 
         x_train, xx, y_train, yy = train_test_split(x, y, test_size=self.test_ratio,random_state=self.random_state)
 
-        x_train = torch.from_numpy(x_train).float().to(self.device).requires_grad_(False)
-        xx = torch.from_numpy(xx).float().to(self.device).requires_grad_(False)
+        x_train = torch.from_numpy(x_train.astype(np.float32)).to(self.device).requires_grad_(False)
+        xx = torch.from_numpy(xx.astype(np.float32)).to(self.device).requires_grad_(False)
         y_train = torch.from_numpy(y_train).float().to(self.device).requires_grad_(False)
         yy = torch.from_numpy(yy).float().to(self.device).requires_grad_(False)
 
@@ -278,7 +279,7 @@ class LearnerOptimized:
                 sys.stdout.flush()
 
         # use all the data to train the model, for best_cnt steps
-        x = torch.from_numpy(x).float().to(self.device).requires_grad_(False)
+        x = torch.from_numpy(x.astype(np.float32)).to(self.device).requires_grad_(False)
         y = torch.from_numpy(y).float().to(self.device).requires_grad_(False)
 
         cnt = 0
@@ -306,7 +307,7 @@ class LearnerOptimized:
 
         """
         self.model.eval()
-        ret_val = self.model(torch.from_numpy(x).to(self.device).requires_grad_(False)).cpu().detach().numpy()
+        ret_val = self.model(torch.from_numpy(x.astype(np.float32)).to(self.device).requires_grad_(False)).cpu().detach().numpy()
         return ret_val
 
 
@@ -361,7 +362,7 @@ class all_q_model(nn.Module):
     """
     def __init__(self,
                  quantiles,
-                 in_shape=1,
+                 in_shape,
                  hidden_size=64,
                  dropout=0.5):
         """ Initialization
@@ -416,7 +417,8 @@ class lr_q_model(nn.Module):
     """
     def __init__(self,
                  quantiles,
-                 in_shape=1):
+                 in_shape):
+        # TODO: in_shape is not 1
         """ Initialization
 
         Parameters
@@ -454,6 +456,7 @@ class lr_q_model(nn.Module):
         """ Run forward pass
         """
         return self.base_model(x)
+
 
 class LearnerOptimizedCrossing:
     """ Fit a neural network (conditional quantile) to training data
@@ -512,13 +515,9 @@ class LearnerOptimizedCrossing:
         optimizer = self.optimizer_class(model.parameters())
         best_epoch = epochs
 
-        x_train, xx, y_train, yy = train_test_split(x,
-                                                    y,
-                                                    test_size=self.test_ratio,
-                                                    random_state=self.random_state)
-
-        x_train = torch.from_numpy(x_train).float().to(self.device).requires_grad_(False)
-        xx = torch.from_numpy(xx).float().to(self.device).requires_grad_(False)
+        x_train, xx, y_train, yy = train_test_split(x, y, test_size=self.test_ratio, random_state=self.random_state)
+        x_train = torch.from_numpy(x_train.astype(np.float32)).to(self.device).requires_grad_(False)
+        xx = torch.from_numpy(xx.astype(np.float32)).to(self.device).requires_grad_(False)
         y_train = torch.from_numpy(y_train).float().to(self.device).requires_grad_(False)
         yy_cpu = yy
         yy = torch.from_numpy(yy).float().to(self.device).requires_grad_(False)
@@ -558,7 +557,7 @@ class LearnerOptimizedCrossing:
                 print("CV: Epoch {}: Train {}, Test {}, Best epoch {}, Best Coverage {} Best Length {} Cur Coverage {}".format(e+1, epoch_loss, test_epoch_loss, best_epoch, best_coverage, best_avg_length, coverage))
                 sys.stdout.flush()
 
-        x = torch.from_numpy(x).float().to(self.device).requires_grad_(False)
+        x = torch.from_numpy(x.astype(np.float32)).to(self.device).requires_grad_(False)
         y = torch.from_numpy(y).float().to(self.device).requires_grad_(False)
 
         cnt = 0

@@ -294,8 +294,8 @@ class MSENet_RegressorAdapter(RegressorAdapter):
     """
     def __init__(self,
                  model,
+                 in_shape,
                  fit_params=None,
-                 in_shape=1,
                  hidden_size=1,
                  learn_func=torch.optim.Adam,
                  epochs=1000,
@@ -374,8 +374,8 @@ class MSELR_RegressorAdapter(RegressorAdapter):
     """
     def __init__(self,
                  model,
+                 in_shape,
                  fit_params=None,
-                 in_shape=1,
                  learn_func=torch.optim.Adam,
                  epochs=1000,
                  batch_size=10,
@@ -456,8 +456,8 @@ class AllQNet_RegressorAdapter(RegressorAdapter):
     """
     def __init__(self,
                  model,
+                 in_shape,
                  fit_params=None,
-                 in_shape=1,
                  hidden_size=1,
                  quantiles=[.05, .95],
                  learn_func=torch.optim.Adam,
@@ -557,8 +557,8 @@ class Linear_RegressorAdapter(RegressorAdapter):
     """
     def __init__(self,
                  model,
+                 in_shape,
                  fit_params=None,
-                 in_shape=1,
                  quantiles=[.05, .95],
                  learn_func=torch.optim.Adam,
                  epochs=100,

@@ -5,13 +5,13 @@ import config
 if __name__ == '__main__':
     # TODO: 1. add local conformal, 2. add and test real data from original dataset.py file, 3. assymmetric quantile error function
     if config.UtilsParams.experiment == 'prediction':
-        dataset_list = ['simulation_1', 'simulation_2', 'simulation_3']
+        dataset_list = ['simulation_1', 'simulation_2', 'simulation_3', 'star', 'bio', 'bike', 'concrete', 'community']
         model_list = ['random_forest', 'linear_regression', 'neural_network']
-        method_name = ['ldcp', 'cqr', 'split']
-        run_pred_experiment(dataset_name='community', model_name='random_forest', method_name='ldcp', random_seed=config.UtilsParams.seed)
-        run_pred_experiment(dataset_name='community', model_name='random_forest', method_name='cqr', random_seed=config.UtilsParams.seed)
-        run_pred_experiment(dataset_name='community', model_name='random_forest', method_name='lacp', random_seed=config.UtilsParams.seed)
-        run_pred_experiment(dataset_name='community', model_name='random_forest', method_name='split', random_seed=config.UtilsParams.seed)
+        method_name = ['ldcp', 'cqr', 'split', 'lacp']
+        run_pred_experiment(dataset_name='bio', model_name='linear_regression', method_name='ldcp', random_seed=config.UtilsParams.seed)
+        run_pred_experiment(dataset_name='bio', model_name='linear_regression', method_name='cqr', random_seed=config.UtilsParams.seed)
+        run_pred_experiment(dataset_name='bio', model_name='linear_regression', method_name='lacp', random_seed=config.UtilsParams.seed)
+        run_pred_experiment(dataset_name='bio', model_name='linear_regression', method_name='split', random_seed=config.UtilsParams.seed)
     if config.UtilsParams.experiment == 'cov_shift':
         run_cov_shift()
     if config.UtilsParams.experiment == 'model_bias':

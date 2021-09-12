@@ -27,6 +27,7 @@ def run_pred_experiment(dataset_name, model_name, method_name, random_seed):
         print("CANNOT LOAD DATASET!")
         return
 
+    in_shape = X_train.shape[1]
     if model_name == 'random_forest':
         if method_name in ['split', 'lacp']:
             model = RandomForestRegressor(n_estimators=config.RandomForecastParams.n_estimators, 
@@ -40,15 +41,15 @@ def run_pred_experiment(dataset_name, model_name, method_name, random_seed):
                                                           params=config.RandomForecastParams)
     elif model_name == 'linear_regression':
         if method_name in ['split', 'lacp']:
-            model = helper.MSELR_RegressorAdapter(model=None)
+            model = helper.MSELR_RegressorAdapter(model=None, in_shape=in_shape)
         else:
-            model = helper.Linear_RegressorAdapter(model=None)
+            model = helper.Linear_RegressorAdapter(model=None, in_shape=in_shape)
 
     elif model_name == 'neural_network':
         if method_name in ['split', 'lacp']:
-            model = helper.MSENet_RegressorAdapter(model=None)
+            model = helper.MSENet_RegressorAdapter(model=None, in_shape=in_shape)
         else:
-            model = helper.AllQNet_RegressorAdapter(model=None)
+            model = helper.AllQNet_RegressorAdapter(model=None, in_shape=in_shape)
     cp = ConformalPred(model=model, method=method_name, data_name=dataset_name, ratio=0.5, x_train=X_train, x_test=X_test, y_train=y_train, y_test=y_test, k=300)
     cp.fit()
     y_lower, y_upper = cp.predict()
