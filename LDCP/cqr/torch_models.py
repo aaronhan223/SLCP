@@ -584,7 +584,7 @@ class LearnerOptimizedCrossing:
 
         """
         self.model.eval()
-        test_preds = self.model(torch.from_numpy(x).to(self.device).requires_grad_(False)).cpu().detach().numpy()
+        test_preds = self.model(torch.from_numpy(x.astype(np.float32)).to(self.device).requires_grad_(False)).cpu().detach().numpy()
         if self.use_rearrangement:
             test_preds = rearrange(self.all_quantiles, self.quantile_low, self.quantile_high, test_preds)
         else:
