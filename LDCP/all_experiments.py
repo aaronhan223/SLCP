@@ -18,7 +18,7 @@ pd.set_option('precision', 3)
 base_dataset_path = './datasets/'
 
 
-def run_pred_experiment(dataset_name, model_name, method_name, random_seed):
+def run_pred_experiment(dataset_name, model_name, method_name, random_seed, conformal):
 
     set_seed(random_seed)
     try:
@@ -29,7 +29,7 @@ def run_pred_experiment(dataset_name, model_name, method_name, random_seed):
 
     in_shape = X_train.shape[1]
     if model_name == 'random_forest':
-        if method_name in ['split', 'lacp']:
+        if conformal and method_name in ['split', 'lacp']:
             model = RandomForestRegressor(n_estimators=config.RandomForecastParams.n_estimators, 
                                           min_samples_leaf=config.RandomForecastParams.min_samples_leaf,
                                           max_features=config.RandomForecastParams.max_features, 
@@ -39,28 +39,36 @@ def run_pred_experiment(dataset_name, model_name, method_name, random_seed):
                                                           fit_params=None, 
                                                           quantiles=config.ConformalParams.quantiles, 
                                                           params=config.RandomForecastParams)
-    elif model_name == 'linear_regression':
-        if method_name in ['split', 'lacp']:
+    elif model_name == 'linear':
+        if conformal and method_name in ['split', 'lacp']:
             model = helper.MSELR_RegressorAdapter(model=None, in_shape=in_shape)
         else:
             model = helper.Linear_RegressorAdapter(model=None, in_shape=in_shape)
 
-    elif model_name == 'neural_network':
-        if method_name in ['split', 'lacp']:
+    elif model_name == 'neural_net':
+        if conformal and method_name in ['split', 'lacp']:
             model = helper.MSENet_RegressorAdapter(model=None, in_shape=in_shape)
         else:
             model = helper.AllQNet_RegressorAdapter(model=None, in_shape=in_shape)
-    cp = ConformalPred(model=model, method=method_name, data_name=dataset_name, ratio=0.5, x_train=X_train, x_test=X_test, y_train=y_train, y_test=y_test, k=300)
-    cp.fit()
-    y_lower, y_upper = cp.predict()
+
+    if conformal:
+        cp = ConformalPred(model=model, method=method_name, data_name=dataset_name, ratio=0.5, x_train=X_train, x_test=X_test, y_train=y_train, y_test=y_test, k=300)
+        cp.fit()
+        y_lower, y_upper = cp.predict()
+    else:
+        model.fit(X_train, y_train)
+        predictions = model.predict(X_test)
+        y_lower, y_upper = predictions[:, 0], predictions[:, 1]
+
     pred = model.predict(X_test)
     if 'simulation' in dataset_name:
         plot_pred(x=X_test, y=y_test, y_u=y_upper, y_l=y_lower, pred=pred, shade_color=config.UtilsParams.cqr_color, method_name=method_name + ":", title="",
                     filename=os.path.join('./results', method_name + '_' + dataset_name), save_figures=config.UtilsParams.save_figures)
     in_the_range = np.sum((y_test >= y_lower) & (y_test <= y_upper))
+    # TODO: change method name to more general situation, not cp method name
     print(method_name + ' ' + model_name + " : Percentage in the range (expecting " + str(100 * (1 - config.ConformalParams.alpha)) + "%):", in_the_range / len(y_test) * 100)
     length_cqr_rf = y_upper - y_lower
-    print(method_name + ' ' +model_name + " : Average length:", np.mean(length_cqr_rf))
+    print(method_name + ' ' + model_name + " : Average length:", np.mean(length_cqr_rf))
 
 
 def model_bias_study(gamma, random_seed):
