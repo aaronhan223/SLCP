@@ -16,6 +16,6 @@ LDCP/datasets/facebook/Features_Variant_2.csv
 LDCP/datasets/blogData_train.csv
 LDCP/get_meps_data/h181.csv
 LDCP/get_meps_data/h192.csv
-LDCP/get_meps_data/meps_19_reg.csv
-LDCP/get_meps_data/meps_20_reg.csv
-LDCP/get_meps_data/meps_21_reg.csv
+LDCP/datasets/meps_19_reg.csv
+LDCP/datasets/meps_20_reg.csv
+LDCP/datasets/meps_21_reg.csv
