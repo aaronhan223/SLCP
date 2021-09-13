@@ -17,7 +17,20 @@ if __name__ == '__main__':
 
     if config.UtilsParams.experiment == 'prediction':
         logger.info('Running conformal prediction task.')
-        dataset_list = ['simulation_1', 'simulation_2', 'simulation_3', 'star', 'facebook_1', 'facebook_2', 'bio', 'blog_data', 'bike', 'concrete', 'community']
+        dataset_list = ['simulation_1', 
+                        'simulation_2', 
+                        'simulation_3', 
+                        'star', 
+                        'meps_19', 
+                        'meps_20', 
+                        'meps_21', 
+                        'facebook_1', 
+                        'facebook_2', 
+                        'bio', 
+                        'blog_data', 
+                        'bike', 
+                        'concrete', 
+                        'community']
         model_list = ['random_forest', 'linear', 'neural_net']
         method_name = ['ldcp', 'cqr', 'cqr-asy', 'split', 'lacp', 'qr']
 

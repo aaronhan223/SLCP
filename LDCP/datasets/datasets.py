@@ -142,6 +142,7 @@ def GetDataset(name, base_path, seed, test_ratio, a=1., b=1.):
         
         y = df[response_name].values
         X = df[col_names].values
+        x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=test_ratio, random_state=seed)
         
     if name=="meps_20":
         df = pd.read_csv(base_path + 'meps_20_reg.csv')
@@ -180,7 +181,8 @@ def GetDataset(name, base_path, seed, test_ratio, a=1., b=1.):
         
         y = df[response_name].values
         X = df[col_names].values
-        
+        x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=test_ratio, random_state=seed)
+
     if name=="meps_21":
         df = pd.read_csv(base_path + 'meps_21_reg.csv')
         column_names = df.columns
@@ -218,6 +220,7 @@ def GetDataset(name, base_path, seed, test_ratio, a=1., b=1.):
         
         y = df[response_name].values
         X = df[col_names].values
+        x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=test_ratio, random_state=seed)
 
     if name=="star":
         df = pd.read_csv(base_path + 'STAR.csv')
@@ -362,12 +365,14 @@ def GetDataset(name, base_path, seed, test_ratio, a=1., b=1.):
         df = pd.read_csv(base_path + 'facebook/Features_Variant_1.csv')        
         y = df.iloc[:,53].values
         X = df.iloc[:,0:53].values        
-    
+        x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=test_ratio, random_state=seed)
+
     if name=="facebook_2":
         df = pd.read_csv(base_path + 'facebook/Features_Variant_2.csv')        
         y = df.iloc[:,53].values
         X = df.iloc[:,0:53].values 
-        
+        x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=test_ratio, random_state=seed)
+
     if name=="bio":
         #https://github.com/joefavergel/TertiaryPhysicochemicalProperties/blob/master/RMSD-ProteinTertiaryStructures.ipynb
         df = pd.read_csv(base_path + 'CASP.csv')        
@@ -380,6 +385,7 @@ def GetDataset(name, base_path, seed, test_ratio, a=1., b=1.):
         df = pd.read_csv(base_path + 'blogData_train.csv', header=None)
         X = df.iloc[:,0:280].values
         y = df.iloc[:,-1].values
+        x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=test_ratio, random_state=seed)
 
     if name=="bike":
         # https://www.kaggle.com/rajmehra03/bike-sharing-demand-rmsle-0-3194
