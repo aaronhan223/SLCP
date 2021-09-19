@@ -25,6 +25,9 @@ class ConformalPred:
         if method == 'ldcp':
             local = True
             nc = RegressorNc(model, local, k, err_func=QuantileRegAsymmetricErrFunc(), alpha=config.ConformalParams.alpha, model_2=model_2, gamma=gamma)
+        elif method == 'ldcp-rbf':
+            local = True
+            nc = RegressorNc(model, local, k, err_func=QuantileRegAsymmetricErrFunc(), rbf_kernel=True, alpha=config.ConformalParams.alpha, model_2=model_2, gamma=gamma)
         elif method == 'cqr':
             local = False
             nc = RegressorNc(model, local, k, err_func=QuantileRegErrFunc(), alpha=config.ConformalParams.alpha, model_2=model_2, gamma=gamma)

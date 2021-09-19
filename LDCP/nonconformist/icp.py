@@ -78,6 +78,52 @@ class BaseIcp(BaseEstimator):
 		idx = np.argsort(dist, axis=-1)[:, :self.k]
 		return idx
 
+	def kernel_smoothing(self, x):
+		diff = x[:, None, :] - self.x_ref[None, :, :]
+		dist = np.sum(diff ** 2, axis=-1)
+		idx = np.argsort(dist, axis=-1)[:, :self.k]
+		h = np.quantile(dist, 0.5) / np.log(diff.shape[1])
+		# h = np.quantile(np.sort(dist, axis=-1)[:, :self.k], 0.5) / np.log(self.k)
+		weights = np.exp(-dist / h)
+		weights[:, ::-1].sort(axis=1)
+		final_weights = weights[:, :self.k]
+		final_weights = final_weights / np.expand_dims(np.sum(final_weights, axis=1), axis=1)
+		return idx, final_weights
+	
+	def ldcp_equal_weights(self, x):
+		alpha_hi = 1 - config.ConformalParams.alpha / 2
+		alpha_lo = 1 - config.ConformalParams.alpha / 2
+		idx = self.knn(x)
+		err_ref = np.sort(self.error_ref[idx], 1)
+		err_ref_q = np.zeros((err_ref.shape[0], err_ref.shape[2]))
+		q_hi = int(np.ceil(alpha_hi * (err_ref.shape[1] + 1))) - 1
+		q_lo = int(np.ceil(alpha_lo * (err_ref.shape[1] + 1))) - 1
+		q_hi = min(max(q_hi, 0), err_ref.shape[1] - 1)
+		q_lo = min(max(q_lo, 0), err_ref.shape[1] - 1)
+		err_ref_q[:, 0] = err_ref[:, q_lo, 0]
+		err_ref_q[:, 1] = err_ref[:, q_hi, 1]
+		return err_ref_q
+
+	def compute_quantile(self, alpha_hi, alpha_lo, weights, err):
+		nc_sorted = np.argsort(err, axis=1)
+		nc_sorted_lo, nc_sorted_hi = nc_sorted[:,:,0], nc_sorted[:,:,1]
+		weights_sorted_lo = np.array(list(map(lambda x, y: y[x], nc_sorted_lo, weights)))
+		weights_sorted_hi = np.array(list(map(lambda x, y: y[x], nc_sorted_hi, weights)))
+		threshold_lo = np.sum(np.cumsum(weights_sorted_lo, axis=1) <= alpha_lo, axis=1)
+		threshold_hi = np.sum(np.cumsum(weights_sorted_hi, axis=1) <= alpha_hi, axis=1)
+		err_lo, err_hi = err[:, :, 0], err[:, :, 1]
+		err_ref_q = np.zeros((err.shape[0], err.shape[2]))
+		err_ref_q[:, 0] = err_lo[np.arange(len(err_lo)), threshold_lo]
+		err_ref_q[:, 1] = err_hi[np.arange(len(err_hi)), threshold_hi]
+		return err_ref_q
+
+	def ldcp_rbf_weights(self, x):
+		alpha_hi = 1 - config.ConformalParams.alpha / 2
+		alpha_lo = 1 - config.ConformalParams.alpha / 2
+		idx, weights = self.kernel_smoothing(x)
+		err_ref_q = self.compute_quantile(alpha_hi, alpha_lo, weights, np.sort(self.error_ref[idx], 1))
+		return err_ref_q
+
 	def calibrate(self, x, y, increment=False):
 		"""Calibrate conformal predictor based on underlying nonconformity
 		scorer.
@@ -116,19 +162,12 @@ class BaseIcp(BaseEstimator):
 			self.categories = np.array([0])
 			cal_scores = self.nc_function.score(self.cal_x, self.cal_y)
 			if self.local:
-				alpha_hi = 1 - config.ConformalParams.alpha / 2
-				alpha_lo = 1 - config.ConformalParams.alpha / 2
-				idx = self.knn(x)
-				err_ref = np.sort(self.error_ref[idx], 1)
-				err_ref_q = np.zeros((err_ref.shape[0], err_ref.shape[2]))
-				q_hi = int(np.ceil(alpha_hi * (err_ref.shape[1] + 1))) - 1
-				q_lo = int(np.ceil(alpha_lo * (err_ref.shape[1] + 1))) - 1
-				q_hi = min(max(q_hi, 0), err_ref.shape[1] - 1)
-				q_lo = min(max(q_lo, 0), err_ref.shape[1] - 1)
-				err_ref_q[:, 0] = err_ref[:, q_lo, 0]
-				err_ref_q[:, 1] = err_ref[:, q_hi, 1]
+				if self.nc_function.get_kernel():
+					err_ref_q = self.ldcp_rbf_weights(x)
+				else:
+					err_ref_q = self.ldcp_equal_weights(x)
 				cal_scores = np.maximum(cal_scores[:, 0] - err_ref_q[:, 0], cal_scores[:, 1] - err_ref_q[:, 1])
-			self.cal_scores = {0: np.sort(cal_scores,0)[::-1]}
+			self.cal_scores = {0: np.sort(cal_scores, 0)[::-1]}
 
 	def _calibrate_hook(self, x, y, increment):
 		pass
@@ -419,9 +458,7 @@ class IcpRegressor(BaseIcp, RegressorMixin):
 		for condition in self.categories:
 			idx = condition_map == condition
 			if np.sum(idx) > 0:
-				p = self.nc_function.predict(x[idx, :],
-				                             self.cal_scores[condition],
-				                             significance)
+				p = self.nc_function.predict(x[idx, :], self.cal_scores[condition], significance)
 				if n_significance > 1:
 					prediction[idx, :, :] = p
 				else:

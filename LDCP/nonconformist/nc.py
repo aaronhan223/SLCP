@@ -156,7 +156,7 @@ class AbsErrorErrFunc(RegressionErrFunc):
 		super(AbsErrorErrFunc, self).__init__()
 
 	def apply(self, prediction, y):
-		return np.abs(prediction - y)
+		return np.abs(prediction - np.squeeze(y))
 
 	def apply_inverse(self, nc, significance):
 		nc = np.sort(nc)[::-1]
@@ -218,8 +218,8 @@ class QuantileRegErrFunc(RegressionErrFunc):
     def apply(self, prediction, y):
         y_lower = prediction[:, 0]
         y_upper = prediction[:, -1]
-        error_low = y_lower - y
-        error_high = y - y_upper
+        error_low = y_lower - np.squeeze(y)
+        error_high = np.squeeze(y) - y_upper
         err = np.maximum(error_high, error_low)
         return err
 
@@ -229,7 +229,7 @@ class QuantileRegErrFunc(RegressionErrFunc):
         index = min(max(index, 0), nc.shape[0] - 1)
         return np.vstack([nc[index], nc[index]])
 
-# CQR asymmetric error function 
+
 class QuantileRegAsymmetricErrFunc(RegressionErrFunc):
     """Calculates conformalized quantile regression asymmetric error function.
     
@@ -244,16 +244,16 @@ class QuantileRegAsymmetricErrFunc(RegressionErrFunc):
         super(QuantileRegAsymmetricErrFunc, self).__init__()
 
     def apply(self, prediction, y):
-        y_lower = prediction[:,0]
-        y_upper = prediction[:,-1]
+        y_lower = prediction[:, 0]
+        y_upper = prediction[:, -1]
         
-        error_high = y - y_upper 
-        error_low = y_lower - y
-        
+        error_high = np.squeeze(y) - y_upper 
+        error_low = y_lower - np.squeeze(y)
+
         err_high = np.reshape(error_high, (y_upper.shape[0],1))
         err_low = np.reshape(error_low, (y_lower.shape[0],1))
 
-        return np.concatenate((err_low,err_high),1)
+        return np.concatenate((err_low, err_high), 1)
 
     def apply_inverse(self, nc, significance):
         nc = np.sort(nc, 0)
@@ -391,7 +391,7 @@ class BaseModelNc(BaseScorer):
 		the normalized nonconformity function approaches a non-normalized
 		equivalent.
 	"""
-	def __init__(self, model, local, k, err_func, alpha=0.1, normalizer=None, beta=1e-6, model_2=None, gamma=1.):
+	def __init__(self, model, local, k, err_func, rbf_kernel=False, alpha=0.1, normalizer=None, beta=1e-6, model_2=None, gamma=1.):
 		super(BaseModelNc, self).__init__()
 		self.err_func = err_func
 		self.model = model
@@ -402,6 +402,7 @@ class BaseModelNc(BaseScorer):
 		self.alpha = alpha
 		self.model_2 = model_2
 		self.gamma = gamma
+		self.kernel = rbf_kernel
 
 		# If we use sklearn.base.clone (e.g., during cross-validation),
 		# object references get jumbled, so we need to make sure that the
@@ -437,7 +438,7 @@ class BaseModelNc(BaseScorer):
 		self.clean = False
 		if self.local:
 			self.x_ref = x
-			self.error_ref = self.score(x, y) # FIXME: return 2 dim tensor
+			self.error_ref = self.score(x, y)
 			return self.error_ref
 
 	def score(self, x, y=None):
@@ -563,6 +564,7 @@ class RegressorNc(BaseModelNc):
 				 local,
 				 k,
 	             err_func,
+				 rbf_kernel=False,
 				 alpha=0.1,
 	             normalizer=None,
 	             beta=1e-6,
@@ -572,12 +574,17 @@ class RegressorNc(BaseModelNc):
 										  local,
 										  k,
 		                                  err_func,
+										  rbf_kernel,
 										  alpha,
 		                                  normalizer,
 		                                  beta,
 										  model_2,
 										  gamma)
 		self.alpha = alpha
+		self.kernel = rbf_kernel
+
+	def get_kernel(self):
+		return self.kernel
 
 	def knn(self, x):
 		'''
@@ -587,6 +594,52 @@ class RegressorNc(BaseModelNc):
 		dist = np.sum(diff ** 2, axis=-1)
 		idx = np.argsort(dist, axis=-1)[:, :self.k]
 		return idx
+
+	def kernel_smoothing(self, x):
+		diff = x[:, None, :] - self.x_ref[None, :, :]
+		dist = np.sum(diff ** 2, axis=-1)
+		idx = np.argsort(dist, axis=-1)[:, :self.k]
+		h = np.quantile(dist, 0.5) / np.log(diff.shape[1])
+		# h = np.quantile(np.sort(dist, axis=-1)[:, :self.k], 0.5) / np.log(self.k)
+		weights = np.exp(-dist / h)
+		weights[:, ::-1].sort(axis=1)
+		final_weights = weights[:, :self.k]
+		final_weights = final_weights / np.expand_dims(np.sum(final_weights, axis=1), axis=1)
+		return idx, final_weights
+
+	def ldcp_equal_weights(self, x):
+		alpha_hi = 1 - config.ConformalParams.alpha / 2
+		alpha_lo = 1 - config.ConformalParams.alpha / 2
+		idx = self.knn(x)
+		err_ref = np.sort(self.error_ref[idx], 1)
+		err_ref_q = np.zeros((err_ref.shape[0], err_ref.shape[2]))
+		q_hi = int(np.ceil(alpha_hi * (err_ref.shape[1] + 1))) - 1
+		q_lo = int(np.ceil(alpha_lo * (err_ref.shape[1] + 1))) - 1
+		q_hi = min(max(q_hi, 0), err_ref.shape[1] - 1)
+		q_lo = min(max(q_lo, 0), err_ref.shape[1] - 1)
+		err_ref_q[:, 0] = err_ref[:, q_lo, 0]
+		err_ref_q[:, 1] = err_ref[:, q_hi, 1]
+		return err_ref_q
+
+	def compute_quantile(self, alpha_hi, alpha_lo, weights, err):
+		nc_sorted = np.argsort(err, axis=1)
+		nc_sorted_lo, nc_sorted_hi = nc_sorted[:,:,0], nc_sorted[:,:,1]
+		weights_sorted_lo = np.array(list(map(lambda x, y: y[x], nc_sorted_lo, weights)))
+		weights_sorted_hi = np.array(list(map(lambda x, y: y[x], nc_sorted_hi, weights)))
+		threshold_lo = np.sum(np.cumsum(weights_sorted_lo, axis=1) <= alpha_lo, axis=1)
+		threshold_hi = np.sum(np.cumsum(weights_sorted_hi, axis=1) <= alpha_hi, axis=1)
+		err_lo, err_hi = err[:, :, 0], err[:, :, 1]
+		err_ref_q = np.zeros((err.shape[0], err.shape[2]))
+		err_ref_q[:, 0] = err_lo[np.arange(len(err_lo)), threshold_lo]
+		err_ref_q[:, 1] = err_hi[np.arange(len(err_hi)), threshold_hi]
+		return err_ref_q
+
+	def ldcp_rbf_weights(self, x):
+		alpha_hi = 1 - config.ConformalParams.alpha / 2
+		alpha_lo = 1 - config.ConformalParams.alpha / 2
+		idx, weights = self.kernel_smoothing(x)
+		err_ref_q = self.compute_quantile(alpha_hi, alpha_lo, weights, np.sort(self.error_ref[idx], 1))
+		return err_ref_q
 
 	def predict(self, x, nc, significance=None):
 		"""Constructs prediction intervals for a set of test examples.
@@ -632,17 +685,10 @@ class RegressorNc(BaseModelNc):
 			intervals = np.zeros((x.shape[0], 2))
 			# err_dist = self.err_func.apply_inverse(nc, significance) # FIXME: assymetric
 			if self.local:
-				alpha_hi = 1 - config.ConformalParams.alpha / 2
-				alpha_lo = 1 - config.ConformalParams.alpha / 2
-				idx = self.knn(x)
-				err_ref = np.sort(self.error_ref[idx], 1)
-				err_ref_q = np.zeros((err_ref.shape[0], err_ref.shape[2]))
-				q_hi = int(np.ceil(alpha_hi * (err_ref.shape[1] + 1))) - 1
-				q_lo = int(np.ceil(alpha_lo * (err_ref.shape[1] + 1))) - 1
-				q_hi = min(max(q_hi, 0), err_ref.shape[1] - 1)
-				q_lo = min(max(q_lo, 0), err_ref.shape[1] - 1)
-				err_ref_q[:, 0] = err_ref[:, q_lo, 0]
-				err_ref_q[:, 1] = err_ref[:, q_hi, 1]
+				if self.get_kernel():
+					err_ref_q = self.ldcp_rbf_weights(x)
+				else:
+					err_ref_q = self.ldcp_equal_weights(x)
 				# this is for symmetric case
 				ErrFunc = QuantileRegErrFunc()
 				d = ErrFunc.apply_inverse(nc=nc, significance=significance)

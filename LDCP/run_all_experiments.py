@@ -1,5 +1,6 @@
 from all_experiments import run_pred_experiment, run_cov_shift, run_model_bias
 from tqdm import tqdm
+import numpy as np
 import utils
 import config
 import logging
@@ -12,12 +13,13 @@ if __name__ == '__main__':
 
     if not os.path.exists(os.path.join(os.getcwd(), 'results')):
         os.mkdir(os.path.join(os.getcwd(), 'results'))
-    utils.set_logger(os.path.join('./results', 'history.log'))    
+    utils.set_logger(os.path.join('./results', f'history_{config.RandomForecastParams.max_features}.log'))    
     logger.info('\n\n<---------------NEW RUN--------------->')
 
     if config.UtilsParams.experiment == 'prediction':
         logger.info('Running conformal prediction task.')
-        dataset_list = ['simulation_1', 
+        dataset_list = [
+                        'simulation_1', 
                         'simulation_2', 
                         'simulation_3', 
                         'star', 
@@ -27,13 +29,14 @@ if __name__ == '__main__':
                         'facebook_1', 
                         'facebook_2', 
                         'bio', 
-                        'blog_data', 
+                        # 'blog_data', 
                         'bike', 
                         'concrete', 
-                        'community']
+                        'community'
+                        ]
         model_list = ['random_forest', 'linear', 'neural_net']
-        method_name = ['ldcp', 'cqr', 'cqr-asy', 'split', 'lacp', 'qr']
-
+        method_name = ['ldcp', 'ldcp-rbf', 'cqr', 'cqr-asy', 'split', 'lacp', 'qr']
+        # h_list = np.concatenate((np.linspace(0, 1, 11)[1:], np.linspace(1, 10, 10)[1:], np.linspace(10, 100, 10)[1:], np.linspace(100, 1000, 10)[1:]))
         for data in tqdm(dataset_list):
             for model in tqdm(model_list):
                 for method in tqdm(method_name):

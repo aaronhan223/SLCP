@@ -27,6 +27,7 @@ def run_pred_experiment(dataset_name, model_name, method_name, random_seed, conf
         logger.info("CANNOT LOAD DATASET!")
         return
 
+    X_train, X_test, y_train, y_test = X_train.astype(np.float32), X_test.astype(np.float32), y_train.astype(np.float32), y_test.astype(np.float32)
     in_shape = X_train.shape[1]
     if model_name == 'random_forest':
         if conformal and method_name in ['split', 'lacp']:
@@ -52,7 +53,7 @@ def run_pred_experiment(dataset_name, model_name, method_name, random_seed, conf
             model = helper.AllQNet_RegressorAdapter(model=None, in_shape=in_shape)
 
     if conformal:
-        cp = ConformalPred(model=model, method=method_name, data_name=dataset_name, ratio=0.5, x_train=X_train, x_test=X_test, y_train=y_train, y_test=y_test, k=300)
+        cp = ConformalPred(model=model, method=method_name, data_name=dataset_name, ratio=config.ConformalParams.valid_ratio, x_train=X_train, x_test=X_test, y_train=y_train, y_test=y_test, k=config.ConformalParams.k)
         cp.fit()
         y_lower, y_upper = cp.predict()
     else:
@@ -80,7 +81,7 @@ def model_bias_study(gamma, random_seed):
                                             random_state=config.RandomForecastParams.random_state)
     quantile_estimator = helper.QuantileForestRegressorAdapter(model=None, fit_params=None, quantiles=config.ConformalParams.quantiles, params=config.RandomForecastParams)
     cp = ConformalPred(model=quantile_estimator, method='cqr', ratio=0.5, x_train=X_train, x_test=X_test, y_train=y_train, y_test=y_test, model_2=mean_estimator, gamma=gamma)
-    cp_local = ConformalPred(model=quantile_estimator, method='ldcp', ratio=0.5, x_train=X_train, x_test=X_test, y_train=y_train, y_test=y_test, model_2=mean_estimator, gamma=gamma, k=100)
+    cp_local = ConformalPred(model=quantile_estimator, method='ldcp', ratio=0.5, x_train=X_train, x_test=X_test, y_train=y_train, y_test=y_test, model_2=mean_estimator, gamma=gamma, k=config.ConformalParams.k)
     cp.fit()
     cp_local.fit()
     y_lower, y_upper = cp.predict()

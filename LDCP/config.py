@@ -4,13 +4,14 @@ class ConformalParams:
     alpha = 0.1 # desired miscoverage error
     quantiles = [5, 95] # low and high target quantiles
     k = 300
+    valid_ratio = 0.5
 
 
 class RandomForecastParams:
 
-    n_estimators = 100
-    min_samples_leaf = 40
-    max_features = 1
+    n_estimators = 100 # [10, 40, 70, 200, 500]
+    min_samples_leaf = 40 
+    max_features = 'sqrt' # ['auto', 'sqrt', 'log2', None, 0.5]
     random_state = 0
     cross_valid = True
     coverage_factor = 0.9
