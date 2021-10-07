@@ -11,7 +11,7 @@ class RandomForecastParams:
 
     n_estimators = 100 # [10, 40, 70, 200, 500]
     min_samples_leaf = 40 
-    max_features = 'sqrt' # ['auto', 'sqrt', 'log2', None, 0.5]
+    max_features = 'auto' # ['auto', 'sqrt', 'log2', None, 0.5]
     random_state = 0
     cross_valid = True
     coverage_factor = 0.9
@@ -23,7 +23,7 @@ class RandomForecastParams:
 class UtilsParams:
 
     save_figures = True
-    seed = 1
+    seed = 2
     experiment = 'prediction'
     split_color = 'tomato'
     local_color = 'gray'

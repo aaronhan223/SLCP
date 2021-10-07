@@ -9,6 +9,7 @@ from utils import plot_pred, plot_model_bias, plot_cov_shift, set_seed
 from cqr import helper
 from sklearn.ensemble import RandomForestRegressor
 from tqdm import tqdm
+from sklearn.preprocessing import StandardScaler
 import logging
 import pdb
 
@@ -29,6 +30,26 @@ def run_pred_experiment(dataset_name, model_name, method_name, random_seed, conf
 
     X_train, X_test, y_train, y_test = X_train.astype(np.float32), X_test.astype(np.float32), y_train.astype(np.float32), y_test.astype(np.float32)
     in_shape = X_train.shape[1]
+
+    if 'simulation' in dataset_name:
+        n_train = config.DataParams.n_train
+    else:
+        n_train = X_train.shape[0]
+    idx = np.random.permutation(n_train)
+    n_half = int(np.floor(n_train * config.ConformalParams.valid_ratio))
+    idx_train = idx[:n_half]
+
+    # zero mean and unit variance scaling of the train and test features
+    scalerX = StandardScaler()
+    scalerX = scalerX.fit(X_train[idx_train])
+    X_train = scalerX.transform(X_train)
+    X_test = scalerX.transform(X_test)
+    
+    # scale the labels by dividing each by the mean absolute response
+    mean_ytrain = np.mean(np.abs(y_train[idx_train]))
+    y_train = np.squeeze(y_train)/mean_ytrain
+    y_test = np.squeeze(y_test)/mean_ytrain
+
     if model_name == 'random_forest':
         if conformal and method_name in ['split', 'lacp']:
             model = RandomForestRegressor(n_estimators=config.RandomForecastParams.n_estimators, 
@@ -69,6 +90,7 @@ def run_pred_experiment(dataset_name, model_name, method_name, random_seed, conf
     logger.info(f'{method_name} {model_name} : Coverage rate (expecting {100 * (1 - config.ConformalParams.alpha)} %): {round(in_the_range / len(y_test) * 100, 2)}')
     length_cqr_rf = y_upper - y_lower
     logger.info(f'{method_name} {model_name} : Average length: {round(np.mean(length_cqr_rf), 2)}')
+    return round(in_the_range / len(y_test) * 100, 2), round(np.mean(length_cqr_rf), 2)
 
 
 def model_bias_study(gamma, random_seed):
