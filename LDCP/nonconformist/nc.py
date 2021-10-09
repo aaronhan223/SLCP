@@ -391,7 +391,7 @@ class BaseModelNc(BaseScorer):
 		the normalized nonconformity function approaches a non-normalized
 		equivalent.
 	"""
-	def __init__(self, model, local, k, err_func, rbf_kernel=False, alpha=0.1, normalizer=None, beta=1e-6, model_2=None, gamma=1.):
+	def __init__(self, model, local, k, err_func, mean=True, rbf_kernel=False, alpha=0.1, normalizer=None, beta=1e-6, model_2=None, gamma=1.):
 		super(BaseModelNc, self).__init__()
 		self.err_func = err_func
 		self.model = model
@@ -403,6 +403,7 @@ class BaseModelNc(BaseScorer):
 		self.model_2 = model_2
 		self.gamma = gamma
 		self.kernel = rbf_kernel
+		self.mean = mean
 
 		# If we use sklearn.base.clone (e.g., during cross-validation),
 		# object references get jumbled, so we need to make sure that the
@@ -564,6 +565,7 @@ class RegressorNc(BaseModelNc):
 				 local,
 				 k,
 	             err_func,
+				 mean=True,
 				 rbf_kernel=False,
 				 alpha=0.1,
 	             normalizer=None,
@@ -574,6 +576,7 @@ class RegressorNc(BaseModelNc):
 										  local,
 										  k,
 		                                  err_func,
+										  mean,
 										  rbf_kernel,
 										  alpha,
 		                                  normalizer,
@@ -582,9 +585,13 @@ class RegressorNc(BaseModelNc):
 										  gamma)
 		self.alpha = alpha
 		self.kernel = rbf_kernel
+		self.mean = mean
 
 	def get_kernel(self):
 		return self.kernel
+	
+	def get_mean(self):
+		return self.mean
 
 	def knn(self, x):
 		'''
@@ -628,17 +635,28 @@ class RegressorNc(BaseModelNc):
 		weights_sorted_hi = np.array(list(map(lambda x, y: y[x], nc_sorted_hi, weights)))
 		threshold_lo = np.sum(np.cumsum(weights_sorted_lo, axis=1) <= alpha_lo, axis=1)
 		threshold_hi = np.sum(np.cumsum(weights_sorted_hi, axis=1) <= alpha_hi, axis=1)
+		err = np.sort(err, 1)
 		err_lo, err_hi = err[:, :, 0], err[:, :, 1]
 		err_ref_q = np.zeros((err.shape[0], err.shape[2]))
 		err_ref_q[:, 0] = err_lo[np.arange(len(err_lo)), threshold_lo]
 		err_ref_q[:, 1] = err_hi[np.arange(len(err_hi)), threshold_hi]
 		return err_ref_q
 
+	def compute_mean(self, weights, err):
+		err_lo, err_hi = err[:, :, 0], err[:, :, 1]
+		err_ref_q = np.zeros((err.shape[0], err.shape[2]))
+		err_ref_q[:, 0] = np.sum(weights * err_lo, axis=1)
+		err_ref_q[:, 1] = np.sum(weights * err_hi, axis=1)
+		return err_ref_q
+
 	def ldcp_rbf_weights(self, x):
 		alpha_hi = 1 - config.ConformalParams.alpha / 2
 		alpha_lo = 1 - config.ConformalParams.alpha / 2
 		idx, weights = self.kernel_smoothing(x)
-		err_ref_q = self.compute_quantile(alpha_hi, alpha_lo, weights, np.sort(self.error_ref[idx], 1))
+		if self.mean:
+			err_ref_q = self.compute_mean(weights, self.error_ref[idx])
+		else:
+			err_ref_q = self.compute_quantile(alpha_hi, alpha_lo, weights, self.error_ref[idx])
 		return err_ref_q
 
 	def predict(self, x, nc, significance=None):

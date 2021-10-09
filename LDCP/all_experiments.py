@@ -63,15 +63,47 @@ def run_pred_experiment(dataset_name, model_name, method_name, random_seed, conf
                                                           params=config.RandomForecastParams)
     elif model_name == 'linear':
         if conformal and method_name in ['split', 'lacp']:
-            model = helper.MSELR_RegressorAdapter(model=None, in_shape=in_shape)
+            model = helper.MSELR_RegressorAdapter(model=None, 
+                                                  in_shape=in_shape,
+                                                  epochs=config.LinearParams.epochs,
+                                                  lr=config.LinearParams.lr,
+                                                  batch_size=config.LinearParams.batch_size,
+                                                  wd=config.LinearParams.wd,
+                                                  test_ratio=config.LinearParams.test_ratio,
+                                                  random_state=config.LinearParams.random_state)
         else:
-            model = helper.Linear_RegressorAdapter(model=None, in_shape=in_shape)
+            model = helper.QLR_RegressorAdapter(model=None, 
+                                                in_shape=in_shape,
+                                                epochs=config.LinearParams.epochs,
+                                                lr=config.LinearParams.lr,
+                                                batch_size=config.LinearParams.batch_size,
+                                                wd=config.LinearParams.wd,
+                                                test_ratio=config.LinearParams.test_ratio,
+                                                random_state=config.LinearParams.random_state)
 
     elif model_name == 'neural_net':
         if conformal and method_name in ['split', 'lacp']:
-            model = helper.MSENet_RegressorAdapter(model=None, in_shape=in_shape)
+            model = helper.MSENet_RegressorAdapter(model=None, 
+                                                   in_shape=in_shape,
+                                                   hidden_size=config.NeuralNetParams.hidden_size,
+                                                   epochs=config.NeuralNetParams.epochs,
+                                                   lr=config.NeuralNetParams.lr,
+                                                   batch_size=config.NeuralNetParams.batch_size,
+                                                   dropout=config.NeuralNetParams.dropout,
+                                                   wd=config.NeuralNetParams.wd,
+                                                   test_ratio=config.NeuralNetParams.test_ratio,
+                                                   random_state=config.NeuralNetParams.random_state)
         else:
-            model = helper.AllQNet_RegressorAdapter(model=None, in_shape=in_shape)
+            model = helper.AllQNet_RegressorAdapter(model=None, 
+                                                    in_shape=in_shape,
+                                                    hidden_size=config.NeuralNetParams.hidden_size,
+                                                    epochs=config.NeuralNetParams.epochs,
+                                                    lr=config.NeuralNetParams.lr,
+                                                    batch_size=config.NeuralNetParams.batch_size,
+                                                    dropout=config.NeuralNetParams.dropout,
+                                                    wd=config.NeuralNetParams.wd,
+                                                    test_ratio=config.NeuralNetParams.test_ratio,
+                                                    random_state=config.NeuralNetParams.random_state)
 
     if conformal:
         cp = ConformalPred(model=model, method=method_name, data_name=dataset_name, ratio=config.ConformalParams.valid_ratio, x_train=X_train, x_test=X_test, y_train=y_train, y_test=y_test, k=config.ConformalParams.k)

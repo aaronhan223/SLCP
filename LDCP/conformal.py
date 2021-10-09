@@ -4,6 +4,7 @@ from nonconformist.cp import IcpRegressor
 from nonconformist.nc import QuantileRegErrFunc, QuantileRegAsymmetricErrFunc, RegressorNormalizer, AbsErrorErrFunc
 from sklearn.ensemble import RandomForestRegressor
 import config
+import copy
 import numpy as np
 from tqdm import tqdm
 import pdb
@@ -27,6 +28,9 @@ class ConformalPred:
             nc = RegressorNc(model, local, k, err_func=QuantileRegAsymmetricErrFunc(), alpha=config.ConformalParams.alpha, model_2=model_2, gamma=gamma)
         elif method == 'ldcp-rbf':
             local = True
+            nc = RegressorNc(model, local, k, err_func=QuantileRegAsymmetricErrFunc(), mean=False, rbf_kernel=True, alpha=config.ConformalParams.alpha, model_2=model_2, gamma=gamma)
+        elif method == 'ldcp-mean':
+            local = True
             nc = RegressorNc(model, local, k, err_func=QuantileRegAsymmetricErrFunc(), rbf_kernel=True, alpha=config.ConformalParams.alpha, model_2=model_2, gamma=gamma)
         elif method == 'cqr':
             local = False
@@ -36,8 +40,9 @@ class ConformalPred:
             nc = RegressorNc(model, local, k, err_func=QuantileRegAsymmetricErrFunc(), alpha=config.ConformalParams.alpha)
         elif method == 'lacp':
             local = False
-            normalizer = RegressorNormalizer(model, model, AbsErrorErrFunc())
-            nc = RegressorNc(model, local, k, err_func=AbsErrorErrFunc(), alpha=config.ConformalParams.alpha, normalizer=normalizer)
+            normalizer_adapter = copy.deepcopy(model)
+            normalizer = RegressorNormalizer(model, normalizer_adapter, AbsErrorErrFunc())
+            nc = RegressorNc(model, local, k, err_func=AbsErrorErrFunc(), alpha=config.ConformalParams.alpha, normalizer=normalizer, beta=1)
         else:
             local = False
             nc = RegressorNc(model, local, k, err_func=AbsErrorErrFunc(), alpha=config.ConformalParams.alpha)

@@ -296,12 +296,12 @@ class MSENet_RegressorAdapter(RegressorAdapter):
                  model,
                  in_shape,
                  fit_params=None,
-                 hidden_size=1,
+                 hidden_size=64,
                  learn_func=torch.optim.Adam,
                  epochs=1000,
-                 batch_size=10,
+                 batch_size=64,
                  dropout=0.1,
-                 lr=0.01,
+                 lr=0.0005,
                  wd=1e-6,
                  test_ratio=0.2,
                  random_state=0):
@@ -378,7 +378,7 @@ class MSELR_RegressorAdapter(RegressorAdapter):
                  fit_params=None,
                  learn_func=torch.optim.Adam,
                  epochs=1000,
-                 batch_size=10,
+                 batch_size=64,
                  lr=0.01,
                  wd=1e-6,
                  test_ratio=0.2,
@@ -458,13 +458,13 @@ class AllQNet_RegressorAdapter(RegressorAdapter):
                  model,
                  in_shape,
                  fit_params=None,
-                 hidden_size=1,
+                 hidden_size=64,
                  quantiles=[.05, .95],
                  learn_func=torch.optim.Adam,
                  epochs=1000,
-                 batch_size=10,
+                 batch_size=64,
                  dropout=0.1,
-                 lr=0.01,
+                 lr=0.0005,
                  wd=1e-6,
                  test_ratio=0.2,
                  random_state=0,
@@ -552,7 +552,7 @@ class AllQNet_RegressorAdapter(RegressorAdapter):
         return self.learner.predict(x)
 
 
-class Linear_RegressorAdapter(RegressorAdapter):
+class QLR_RegressorAdapter(RegressorAdapter):
     """ Conditional quantile estimator, formulated as linear regression
     """
     def __init__(self,
@@ -563,7 +563,6 @@ class Linear_RegressorAdapter(RegressorAdapter):
                  learn_func=torch.optim.Adam,
                  epochs=100,
                  batch_size=64,
-                 dropout=0.1,
                  lr=0.01,
                  wd=1e-6,
                  test_ratio=0.2,
@@ -581,7 +580,6 @@ class Linear_RegressorAdapter(RegressorAdapter):
         learn_func : class of Pytorch's SGD optimizer
         epochs : integer, maximal number of epochs
         batch_size : integer, mini-batch size for SGD
-        dropout : float, dropout rate
         lr : float, learning rate for SGD
         wd : float, weight decay
         test_ratio : float, ratio of held-out data, used in cross-validation
@@ -596,7 +594,7 @@ class Linear_RegressorAdapter(RegressorAdapter):
                 Econometrica 78.3 (2010): 1093-1125.
 
         """
-        super(Linear_RegressorAdapter, self).__init__(model, fit_params)
+        super(QLR_RegressorAdapter, self).__init__(model, fit_params)
         # Instantiate model
         self.quantiles = quantiles
         if use_rearrangement:
@@ -605,7 +603,6 @@ class Linear_RegressorAdapter(RegressorAdapter):
             self.all_quantiles = self.quantiles
         self.epochs = epochs
         self.batch_size = batch_size
-        self.dropout = dropout
         self.lr = lr
         self.wd = wd
         self.test_ratio = test_ratio

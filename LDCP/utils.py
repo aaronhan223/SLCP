@@ -4,6 +4,15 @@ import random
 import config
 import torch
 import logging
+import pandas as pd
+import seaborn as sns 
+
+
+palettes = {
+    'Split Conformal': 'tab:green',
+    "KNN Diff": 'tab:orange',
+    'Ground Truth': '#4E4F97'
+    }
 
 
 def set_seed(seed):
@@ -133,3 +142,71 @@ def plot_cov_shift(length_vals, length_local_vals, gamma_vals, k, n_sample):
     plt.title('Impact of Covariate Shift'.format(k, n_sample), fontsize=30)
     plt.savefig('./results/cov_k={}_n={}.pdf'.format(k, n_sample))
     plt.close()
+
+
+def plot_curves(data_model, size, a, b, L, R):
+    x, y, y_gt_upper, y_gt_lower = data_model.generate(size, a=1, b=1, gt=True)
+    # y_gt_upper = y_gt[np.argwhere(noise >= 0)][:, 0]
+    # y_gt_lower = y_gt[np.argwhere(noise < 0)][:, 0]
+    # x_upper = x[:, 0][np.argwhere(noise >= 0)][:, 0]
+    # x_lower = x[:, 0][np.argwhere(noise < 0)][:, 0]
+    # sort_upper_idx = np.argsort(x_upper)
+    # sort_lower_idx = np.argsort(x_lower)
+    # x_upper, y_gt_upper = x_upper[sort_upper_idx], y_gt_upper[sort_upper_idx]
+    # x_lower, y_gt_lower = x_lower[sort_lower_idx], y_gt_lower[sort_lower_idx]
+    scatter_data = pd.DataFrame({
+        'x': x.reshape(-1),
+        'y': y
+    })
+    Name = ['Split Conformal', 'KNN Diff']
+    # Name = ['Split Conformal']
+    all_data = pd.DataFrame()
+    plt.clf()
+    sns.set_style('ticks')
+    plt.figure(figsize=(8, 7), facecolor="white")
+    plt.grid()
+    plt.rc("axes.spines", top=False, right=False)
+
+    for method_name in Name:
+        # this show load from x, y_high, y_low
+        data = load_data_for_method(method_name)
+        all_data = all_data.append(data)
+
+    sns.scatterplot(x='x', y='y', data=scatter_data)
+    sns.lineplot(x='x', y='y1', data=all_data, hue='method', palette=palettes, legend=False, lw=3)
+    sns.lineplot(x='x', y='y2', data=all_data, hue='method', palette=palettes, legend=False, lw=3)
+    sort_idx = np.argsort(x[:, 0])
+    x = x[:, 0][sort_idx]
+    y_gt_lower = y_gt_lower[sort_idx]
+    y_gt_upper = y_gt_upper[sort_idx]
+    plt.plot(x, y_gt_lower, color='#4E4F97', linewidth=4)
+    plt.plot(x, y_gt_upper, color='#4E4F97', linewidth=4)
+    # sns.lineplot(x='x', y='y3', data=all_data, hue='method', palette=palettes, legend=False, lw=3)
+
+    plt.xticks(np.linspace(L, R, num=5))
+    plt.xlim([L - 0.1, R + 0.1])
+    plt.savefig('figures/curve_{}_{}_{}_{}.pdf'.format(a, b, L, R), bbox_inches='tight')
+    plot_legends()
+    plt.close()
+
+
+def plot_legends():
+    legends = {
+        'Split Conformal': 'Split Conformal',
+        "KNN Diff": 'Localization',
+        'Ground Truth': 'Ground Truth'
+    }
+
+    import pylab
+    fig = pylab.figure()
+    legend_fig = pylab.figure()
+
+    all_list_keys = ['Split Conformal', 'KNN Diff', 'Ground Truth']
+
+    for key in all_list_keys:
+        fig.gca().plot(range(10), pylab.randn(10), color=palettes[key], label=legends[key], ls='-', lw=3)
+
+    legend = pylab.figlegend(*fig.gca().get_legend_handles_labels(), fontsize=8.5, loc='center', frameon=False)
+
+    legend_fig.canvas.draw()
+    legend_fig.savefig('figures/%s.pdf'%('legend'), bbox_inches=legend.get_window_extent().transformed(legend_fig.dpi_scale_trans.inverted()))

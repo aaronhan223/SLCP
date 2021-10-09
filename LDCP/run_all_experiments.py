@@ -1,4 +1,5 @@
 from all_experiments import run_pred_experiment, run_cov_shift, run_model_bias
+from datasets.datasets import GaussianDataGenerator, px_model, mu_model, sigma_model
 from tqdm import tqdm
 import numpy as np
 import utils
@@ -14,7 +15,7 @@ if __name__ == '__main__':
 
     if not os.path.exists(os.path.join(os.getcwd(), 'results')):
         os.mkdir(os.path.join(os.getcwd(), 'results'))
-    utils.set_logger(os.path.join('./results', f'history.log'))    
+    utils.set_logger(os.path.join('./results', f'history_new_params.log'))    
     logger.info('\n\n<---------------NEW RUN--------------->')
 
     if config.UtilsParams.experiment == 'prediction':
@@ -43,6 +44,7 @@ if __name__ == '__main__':
         method_name = [
                        'ldcp', 
                        'ldcp-rbf', 
+                       'ldcp-mean',
                        'cqr', 
                        'cqr-asy', 
                        'split', 
@@ -82,4 +84,8 @@ if __name__ == '__main__':
         logger.info('Running model bias experiment.')
         run_model_bias()
     
+    if config.UtilsParams.experiment == 'toy_plot':
+        logger.info('Running toy plot experiment.')
+        data_model = GaussianDataGenerator(px_model, mu_model, sigma_model)
+
     logger.info('Program done!')
