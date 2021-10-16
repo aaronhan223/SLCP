@@ -10,7 +10,7 @@ then activate the environment:
 conda activate conformal
 ```
 
-To run all experiments mentioned in the paper, first change UtilsParams.experiment in [config.py](./SLCP/config.py) into corresponding name of the experiment (available choice: "prediction", "cov_shift", "toy_plot", "nn_capacity"), then run
+To run all experiments mentioned in the paper, first change UtilsParams.experiment in [config.py](https://github.com/aaronhan223/SLCP/blob/main/SLCP/config.py#L50) into corresponding name of the experiment (available choice: "prediction", "cov_shift", "toy_plot", "nn_capacity"), then run
 ```
 python -W ignore run_all_experiments.py
 ```
