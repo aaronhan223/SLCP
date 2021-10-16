@@ -3,6 +3,7 @@ import numpy as np
 from scipy.stats import beta
 from sklearn.model_selection import train_test_split
 import config
+import pdb
 
 
 class simulation:
@@ -17,8 +18,13 @@ class simulation:
     def f_1(self, x):
         return np.sin(x) ** 2 + 0.1 + 0.6 * np.sin(2 * x) * np.random.randn(1)
 
-    def f_2(self, x):
-        return 2 * np.sin(x) ** 2 + 0.1 + 0.15 * x * np.random.randn(1)
+    def f_2(self, x, gt=False):
+        if not gt:
+            return 2 * np.sin(x) ** 2 + 0.1 + 0.15 * x * np.random.randn(1)
+        else:
+            noise = np.random.randn(1)
+            data = 2 * np.sin(x) ** 2 + 0.1
+            return data, noise
 
     def f_3(self, x):
         x = np.random.poisson(np.sin(x) ** 2 + 0.1) + 0.08 * x * np.random.randn(1)
@@ -30,18 +36,25 @@ class simulation:
         x += 25 * (np.random.uniform(0, 1, 1) < 0.01) * np.random.randn(1)
         return x
 
-    def generate(self, data):
+    def generate(self, data, gt=False):
         y = 0 * data
+        noise = 0 * data
         for i in range(len(data)):
             if self.rank == 1:
                 y[i] = self.f_1(data[i])
             elif self.rank == 2:
-                y[i] = self.f_2(data[i])
+                if gt:
+                    y[i], noise[i] = self.f_2(data[i], gt=gt)
+                else:
+                    y[i] = self.f_2(data[i])
             elif self.rank == 3:
                 y[i] = self.f_3(data[i])
             else:
                 y[i] = self.f(data[i])
-        return y.astype(np.float32)
+        if gt:
+            return y.astype(np.float32), noise.astype(np.float32)
+        else:
+            return y.astype(np.float32)
 
 
 class GaussianDataGenerator(object):

@@ -9,15 +9,15 @@ class ConformalParams:
 
 class RandomForecastParams:
 
-    n_estimators = 1000 # [10, 40, 70, 200, 500]
-    min_samples_leaf = 1 
-    max_features = 'auto' # ['auto', 'sqrt', 'log2', None, 0.5]
-    random_state = 1
+    n_estimators = 100
+    min_samples_leaf = 40
+    max_features = 1
+    random_state = 0
     cross_valid = True
-    coverage_factor = 0.85
-    test_ratio = 0.05
-    range_vals = 30
-    num_vals = 10
+    coverage_factor = 0.9
+    test_ratio = 0.1
+    range_vals = 10
+    num_vals = 4
 
 
 class NeuralNetParams:
@@ -46,6 +46,7 @@ class UtilsParams:
 
     save_figures = True
     seed = 1
+    gpu = 2
     experiment = 'prediction'
     split_color = 'tomato'
     local_color = 'gray'

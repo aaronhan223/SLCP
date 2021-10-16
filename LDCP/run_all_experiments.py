@@ -1,4 +1,8 @@
-from all_experiments import run_pred_experiment, run_cov_shift, run_model_bias
+from all_experiments.prediction import run_pred_experiment
+from all_experiments.cov_shift import run_cov_shift
+from all_experiments.model_bias import run_model_bias
+from all_experiments.nn_capacity import run_nn_capacity
+from all_experiments.toy_plot import plot_toy_example
 from datasets.datasets import GaussianDataGenerator, px_model, mu_model, sigma_model
 from tqdm import tqdm
 import numpy as np
@@ -8,14 +12,14 @@ import pandas as pd
 import logging
 import os
 
-logger = logging.getLogger('LDCP.main')
+logger = logging.getLogger('SLCP.main')
 
 
 if __name__ == '__main__':
 
     if not os.path.exists(os.path.join(os.getcwd(), 'results')):
         os.mkdir(os.path.join(os.getcwd(), 'results'))
-    utils.set_logger(os.path.join('./results', f'history_new_params.log'))    
+    utils.set_logger(os.path.join('./results', f'history_{config.UtilsParams.experiment}_{config.ConformalParams.k}_{config.ConformalParams.valid_ratio}.log'))    
     logger.info('\n\n<---------------NEW RUN--------------->')
 
     if config.UtilsParams.experiment == 'prediction':
@@ -29,9 +33,9 @@ if __name__ == '__main__':
                         'meps_20', 
                         'meps_21', 
                         'facebook_1', 
-                        # 'facebook_2', 
+                        'facebook_2', 
                         'bio', 
-                        # 'blog_data', 
+                        'blog_data', 
                         'bike', 
                         'concrete', 
                         'community'
@@ -39,19 +43,20 @@ if __name__ == '__main__':
         model_list = [
                       'random_forest', 
                       'linear', 
-                      'neural_net'
+                      'neural_net',
+                      'kde'
                       ]
         method_name = [
-                       'ldcp', 
-                       'ldcp-rbf', 
-                       'ldcp-mean',
+                       'slcp', 
+                       'slcp-rbf', 
+                       'slcp-mean',
                        'cqr', 
                        'cqr-asy', 
                        'split', 
                        'lacp', 
                        'qr'
                        ]
-        # h_list = np.concatenate((np.linspace(0, 1, 11)[1:], np.linspace(1, 10, 10)[1:], np.linspace(10, 100, 10)[1:], np.linspace(100, 1000, 10)[1:]))
+
         all_cov_rate = np.zeros((len(model_list), len(method_name)))
         all_length = np.zeros((len(model_list), len(method_name)))
         for data in tqdm(dataset_list):
@@ -73,8 +78,8 @@ if __name__ == '__main__':
         all_length /= len(dataset_list)
         cov_rate_result = pd.DataFrame(data=all_cov_rate, index=model_list, columns=method_name)
         length_result = pd.DataFrame(data=all_length, index=model_list, columns=method_name)
-        cov_rate_result.to_csv('./results/cov_rate_result.csv')
-        length_result.to_csv('./results/length_result.csv')
+        cov_rate_result.to_csv(f'./results/cov_rate_plot_{config.ConformalParams.k}_{config.ConformalParams.valid_ratio}.csv')
+        length_result.to_csv(f'./results/length_plot_{config.ConformalParams.k}_{config.ConformalParams.valid_ratio}.csv')
 
     if config.UtilsParams.experiment == 'cov_shift':
         logger.info('Running covariate shift experiment.')
@@ -86,6 +91,11 @@ if __name__ == '__main__':
     
     if config.UtilsParams.experiment == 'toy_plot':
         logger.info('Running toy plot experiment.')
-        data_model = GaussianDataGenerator(px_model, mu_model, sigma_model)
+        plot_toy_example()
 
+    if config.UtilsParams.experiment == 'nn_capacity':
+        logger.info('Running NN capacity experiment.')
+        dataset = 'simulation_2'
+        run_nn_capacity(config.UtilsParams.seed, dataset)
+        
     logger.info('Program done!')

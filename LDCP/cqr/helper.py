@@ -1,6 +1,8 @@
 
 import sys
+from typing import NoReturn
 import torch
+import config
 import numpy as np
 from cqr import torch_models
 from functools import partial
@@ -8,9 +10,10 @@ from cqr import tune_params_cv
 from nonconformist.cp import IcpRegressor
 from nonconformist.base import RegressorAdapter
 from skgarden import RandomForestQuantileRegressor
+import pdb
 
 if torch.cuda.is_available():
-    device = "cuda:0"
+    device = "cuda:" + str(config.UtilsParams.gpu)
 else:
     device = "cpu"
 
@@ -377,7 +380,7 @@ class MSELR_RegressorAdapter(RegressorAdapter):
                  in_shape,
                  fit_params=None,
                  learn_func=torch.optim.Adam,
-                 epochs=1000,
+                 epochs=100,
                  batch_size=64,
                  lr=0.01,
                  wd=1e-6,
@@ -444,6 +447,72 @@ class MSELR_RegressorAdapter(RegressorAdapter):
 
         """
         return self.learner.predict(x)
+
+
+class MSEConst_RegressorAdapter(RegressorAdapter):
+    """ Zero (const.) estimator
+    """
+    def __init__(self, model=None, fit_params=None):
+        super(MSEConst_RegressorAdapter, self).__init__(model, fit_params)
+
+    def fit(self, x, y):
+        """ Fit the model to data
+
+        Parameters
+        ----------
+
+        x : numpy array of training features (nXp)
+        y : numpy array of training labels (n)
+
+        """
+        return
+
+    def predict(self, x):
+        """ Estimate the label given the features
+
+        Parameters
+        ----------
+        x : numpy array of training features (nXp)
+
+        Returns
+        -------
+        ret_val : numpy array of predicted labels (n)
+
+        """
+        return np.zeros((x.shape[0],))
+
+
+class QConst_RegressorAdapter(RegressorAdapter):
+    """ Zero (const.) estimator
+    """
+    def __init__(self, model=None, fit_params=None):
+        super(QConst_RegressorAdapter, self).__init__(model, fit_params)
+
+    def fit(self, x, y):
+        """ Fit the model to data
+
+        Parameters
+        ----------
+
+        x : numpy array of training features (nXp)
+        y : numpy array of training labels (n)
+
+        """
+        return
+
+    def predict(self, x):
+        """ Estimate the label given the features
+
+        Parameters
+        ----------
+        x : numpy array of training features (nXp)
+
+        Returns
+        -------
+        ret_val : numpy array of predicted labels (n)
+
+        """
+        return np.zeros((x.shape[0], 2))
 
 
 ###############################################################################

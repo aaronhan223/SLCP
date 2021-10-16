@@ -6,13 +6,8 @@ import torch
 import logging
 import pandas as pd
 import seaborn as sns 
-
-
-palettes = {
-    'Split Conformal': 'tab:green',
-    "KNN Diff": 'tab:orange',
-    'Ground Truth': '#4E4F97'
-    }
+import config
+import pdb
 
 
 def set_seed(seed):
@@ -32,7 +27,7 @@ def set_logger(log_path):
     Args:
         log_path: (string) where to log
     '''
-    _logger = logging.getLogger('LDCP')
+    _logger = logging.getLogger('SLCP')
     _logger.setLevel(logging.INFO)
 
     fmt = logging.Formatter('[%(asctime)s] %(name)s: %(message)s', '%Y-%m-%d %H:%M:%S')
@@ -42,7 +37,7 @@ def set_logger(log_path):
     _logger.addHandler(file_handler)
 
 
-def plot_pred(x, y, y_u=None, y_l=None, pred=None, shade_color="", method_name="", title="", filename=None, save_figures=True):
+def plot_pred(x, y, y_u=None, y_l=None, pred=None, y_u_2=None, y_l_2=None, gt_u=None, gt_l=None, shade_color="", method_name="", title="", filename=None, save_figures=True):
     
     """ Scatter plot of (x,y) points along with the constructed prediction interval 
     
@@ -66,6 +61,14 @@ def plot_pred(x, y, y_u=None, y_l=None, pred=None, shade_color="", method_name="
         y_u_ = y_u[:config.DataParams.max_show]
     if y_l is not None:
         y_l_ = y_l[:config.DataParams.max_show]
+    if y_u_2 is not None:
+        y_u_2_ = y_u_2[:config.DataParams.max_show]
+    if y_l_2 is not None:
+        y_l_2_ = y_l_2[:config.DataParams.max_show]
+    if gt_u is not None:
+        gt_u_ = gt_u[:config.DataParams.max_show]
+    if gt_l is not None:
+        gt_l_ = gt_l[:config.DataParams.max_show]  
     if pred is not None:
         pred_ = pred[:config.DataParams.max_show]
 
@@ -77,8 +80,14 @@ def plot_pred(x, y, y_u=None, y_l=None, pred=None, shade_color="", method_name="
         plt.fill(np.concatenate([x_[inds], x_[inds][::-1]]),
                  np.concatenate([y_u_[inds], y_l_[inds][::-1]]),
                  alpha=.3, fc=shade_color, ec='None',
-                 label = method_name + ' prediction interval')
+                 label='SLCP' + ' prediction interval')
     
+    if (y_u_2 is not None) and (y_l_2 is not None):
+        plt.plot(x_[inds,:], y_u_2_[inds], '#F75C2F', lw=2, alpha=0.9, label=u'Split Conformal Interval')
+        plt.plot(x_[inds,:], y_l_2_[inds], '#F75C2F', lw=2, alpha=0.9)
+        plt.plot(x_[inds,:], gt_u_[inds], '#1B813E', ls='dashed', lw=2, alpha=0.9, label=u'Ground Truth Interval')
+        plt.plot(x_[inds,:], gt_l_[inds], '#1B813E', ls='dashed', lw=2, alpha=0.9)
+
     if pred is not None:
         if pred_.ndim == 2:
             plt.plot(x_[inds,:], pred_[inds,0], 'k', lw=2, alpha=0.9, label=u'Predicted low and high quantiles')
@@ -87,19 +96,87 @@ def plot_pred(x, y, y_u=None, y_l=None, pred=None, shade_color="", method_name="
             plt.plot(x_[inds,:], pred_[inds], 'k--', lw=2, alpha=0.9, label=u'Predicted value')
     
     plt.ylim([-2.5, 7])
-    plt.xlabel('$X$')
-    plt.ylabel('$Y$')
-    plt.legend(loc='upper right')
-    plt.title(title)
+    plt.xlabel('$X$', fontsize=22)
+    plt.ylabel('$Y$', fontsize=22)
+    plt.legend(loc='best', fontsize=14)
+    plt.title(title, fontsize=20)
     if save_figures and (filename is not None):
         plt.savefig(filename, bbox_inches='tight', dpi=300)
+    plt.close()
+
+
+def plot_toy_cov_rate(x, y, y_u, y_l, y_u_2, y_l_2, gt_u, gt_l, filename):
+    x_ = x[:config.DataParams.max_show]
+    y_ = y[:config.DataParams.max_show]
+    y_u_ = y_u[:config.DataParams.max_show]
+    y_l_ = y_l[:config.DataParams.max_show]
+    y_u_2_ = y_u_2[:config.DataParams.max_show]
+    y_l_2_ = y_l_2[:config.DataParams.max_show]
+    gt_u_ = gt_u[:config.DataParams.max_show]
+    gt_l_ = gt_l[:config.DataParams.max_show]
+
+    fig = plt.figure()
+    inds = np.argsort(np.squeeze(x_))
+    x_ = x_[inds,:]
+    y_ = y_[inds]
+    length = len(inds)
+
+    y_upper_split = y_u_2_[inds]
+    y_lower_split = y_l_2_[inds]
+    y_upper_slcp = y_u_[inds]
+    y_lower_slcp = y_l_[inds]
+    y_upper_gt = gt_u_[inds]
+    y_lower_gt = gt_l_[inds]
+
+    cov_diff_split = np.absolute(y_upper_gt - y_upper_split) + np.absolute(y_lower_gt - y_lower_split)
+    cov_diff_slcp = np.absolute(y_upper_gt - y_upper_slcp) + np.absolute(y_lower_gt - y_lower_slcp)
+
+    plt.plot(x_, cov_diff_split, '#F75C2F', lw=2, alpha=0.9, label=u'Split Conformal')
+    plt.plot(x_, cov_diff_slcp, '#2EA9DF', lw=2, alpha=0.9, label=u'SLCP')
+    plt.xlabel('$X$', fontsize=22)
+    plt.ylabel('$\Delta C$', fontsize=22)
+    plt.legend(loc='best', fontsize=18)
+    plt.title('Local Difference of Conformal Band', fontsize=20)
+    plt.savefig(filename, bbox_inches='tight', dpi=300)
+    plt.close()
+
+
+def plot_toy_ave_length(x, y_u, y_l, y_u_2, y_l_2, gt_u, gt_l, filename):
+    x_ = x[:config.DataParams.max_show]
+    y_u_ = y_u[:config.DataParams.max_show]
+    y_l_ = y_l[:config.DataParams.max_show]
+    y_u_2_ = y_u_2[:config.DataParams.max_show]
+    y_l_2_ = y_l_2[:config.DataParams.max_show]
+    gt_u_ = gt_u[:config.DataParams.max_show]
+    gt_l_ = gt_l[:config.DataParams.max_show]
+    fig = plt.figure()
+    inds = np.argsort(np.squeeze(x_))
+
+    y_upper_split = y_u_2_[inds]
+    y_lower_split = y_l_2_[inds]
+    y_upper_slcp = y_u_[inds]
+    y_lower_slcp = y_l_[inds]
+    y_upper_gt = gt_u_[inds]
+    y_lower_gt = gt_l_[inds]
+
+    interval_length_split = y_upper_split - y_lower_split
+    interval_length_slcp = y_upper_slcp - y_lower_slcp
+    interval_length_gt = y_upper_gt - y_lower_gt
+    plt.plot(x_[inds,:], interval_length_split, '#F75C2F', lw=2, alpha=0.9, label=u'Split Conformal')
+    plt.plot(x_[inds,:], interval_length_gt, '#1B813E', ls='dotted', lw=2, alpha=0.9, label=u'Ground Truth')
+    plt.plot(x_[inds,:], interval_length_slcp, '#2EA9DF', lw=2, alpha=0.9, label=u'SLCP')
+    plt.xlabel('$X$', fontsize=22)
+    plt.ylabel('Average Length', fontsize=22)
+    plt.legend(loc='best', fontsize=18)
+    plt.title('Local Length of Conformal Band', fontsize=22)
+    plt.savefig(filename, bbox_inches='tight', dpi=300)
     plt.close()
 
 
 def plot_model_bias(length_vals, length_local_vals, gamma_vals, k, n_sample):
     keys = ['c', 'd']
     colors = {'c': '#D05A6E', 'd': '#3A8FB7'}
-    legends = {'c': 'CQR', 'd': 'LDCP'}
+    legends = {'c': 'CQR', 'd': 'SLCP'}
     markers = {'c': 'o', 'd': 'o'}
     linestyles = {'c': 'solid', 'd': 'solid'}
     plt.rcParams["figure.figsize"] = (10, 8.5)
@@ -120,18 +197,19 @@ def plot_model_bias(length_vals, length_local_vals, gamma_vals, k, n_sample):
     plt.close()
 
 
-def plot_cov_shift(length_vals, length_local_vals, gamma_vals, k, n_sample):
-    keys = ['c', 'd']
-    colors = {'c': '#D05A6E', 'd': '#3A8FB7'}
-    legends = {'c': 'CQR', 'd': 'LDCP'}
-    markers = {'c': 'o', 'd': 'o'}
-    linestyles = {'c': 'solid', 'd': 'solid'}
+def plot_cov_shift(cov_cqr, cov_slcp, cov_split, gamma_vals, k, n_sample):
+    keys = ['c', 'sl', 'sp']
+    colors = {'c': '#2EA9DF', 'sl': '#90B44B', 'sp': '#F75C2F'}
+    legends = {'c': 'CQR', 'sl': 'SLCP', 'sp': 'Split'}
+    markers = {'c': '^', 'sl': 'D', 'sp': 'o'}
+    linestyles = {'c': 'dashed', 'sl': 'dashed', 'sp': 'dashed'}
     plt.rcParams["figure.figsize"] = (10, 8.5)
 
-    data = {'c': length_vals, 'd': length_local_vals}
+    data = {'c': cov_cqr, 'sl': cov_slcp, 'sp': cov_split}
     for key in keys:
-        plt.plot(gamma_vals[::-1], data[key], label=legends[key], color=colors[key], lw=8, ls=linestyles[key], zorder=1)
-    plt.legend(loc='upper left', fontsize=27, fancybox=True)
+        plt.plot(gamma_vals[::-1], data[key], label=legends[key], color=colors[key], lw=3, ls=linestyles[key], fillstyle='none', marker=markers[key],
+                 mec=colors[key], mew=2, ms=18)
+    plt.legend(loc='best', fontsize=27, fancybox=True)
     plt.xlim([-.01, 1.01])
     plt.xticks(np.linspace(0, 1, 6), fontsize=23)
     plt.ylim([74, 96])
@@ -144,69 +222,33 @@ def plot_cov_shift(length_vals, length_local_vals, gamma_vals, k, n_sample):
     plt.close()
 
 
-def plot_curves(data_model, size, a, b, L, R):
-    x, y, y_gt_upper, y_gt_lower = data_model.generate(size, a=1, b=1, gt=True)
-    # y_gt_upper = y_gt[np.argwhere(noise >= 0)][:, 0]
-    # y_gt_lower = y_gt[np.argwhere(noise < 0)][:, 0]
-    # x_upper = x[:, 0][np.argwhere(noise >= 0)][:, 0]
-    # x_lower = x[:, 0][np.argwhere(noise < 0)][:, 0]
-    # sort_upper_idx = np.argsort(x_upper)
-    # sort_lower_idx = np.argsort(x_lower)
-    # x_upper, y_gt_upper = x_upper[sort_upper_idx], y_gt_upper[sort_upper_idx]
-    # x_lower, y_gt_lower = x_lower[sort_lower_idx], y_gt_lower[sort_lower_idx]
-    scatter_data = pd.DataFrame({
-        'x': x.reshape(-1),
-        'y': y
-    })
-    Name = ['Split Conformal', 'KNN Diff']
-    # Name = ['Split Conformal']
-    all_data = pd.DataFrame()
-    plt.clf()
-    sns.set_style('ticks')
-    plt.figure(figsize=(8, 7), facecolor="white")
+def plot_nn_capacity(lengths, cov_rates, hidden_size, dataset_name):
+    keys = ['s', 'c', 'l']
+    colors = {'s': '#D05A6E', 'c': '#3A8FB7', 'l': '#24936E'}
+    legends = {'s': 'Split', 'c': 'CQR', 'l': 'SLCP'}
+    names = {'s': 'split', 'c': 'cqr', 'l': 'slcp'}
+    markers = {'s': 'o', 'c': '^', 'l': 'D'}
+    linestyles = {'s': 'dashed', 'c': 'dashed', 'l': 'dashed'}
+    plt.rcParams["figure.figsize"] = (10, 8.5)
+    desired_rate = (1 - config.ConformalParams.alpha) * 100
+
+    data = {'s': lengths['split'], 'c': lengths['cqr'], 'l': lengths['slcp']}
+    for key in keys:
+        # below = np.array(cov_rates[names[key]]) < desired_rate
+        # above = np.array(cov_rates[names[key]]) >= desired_rate
+        # x_below, x_above = np.array(hidden_size)[below], np.array(hidden_size)[above]
+        # y_below, y_above = np.array(data[key])[below], np.array(data[key])[above]
+        # plt.scatter(x_below, y_below, facecolors='none', edgecolors=colors[key], s=100, marker=markers[key])
+        # plt.scatter(x_above, y_above, label=legends[key], c=colors[key], s=100, marker=markers[key])
+        plt.plot(hidden_size, data[key], label=legends[key], c=colors[key], lw=3, ls=linestyles[key], fillstyle='none',
+                 marker=markers[key], mec=colors[key], mew=2, ms=18)
+    plt.legend(loc='best', fontsize=27, fancybox=True)
     plt.grid()
-    plt.rc("axes.spines", top=False, right=False)
-
-    for method_name in Name:
-        # this show load from x, y_high, y_low
-        data = load_data_for_method(method_name)
-        all_data = all_data.append(data)
-
-    sns.scatterplot(x='x', y='y', data=scatter_data)
-    sns.lineplot(x='x', y='y1', data=all_data, hue='method', palette=palettes, legend=False, lw=3)
-    sns.lineplot(x='x', y='y2', data=all_data, hue='method', palette=palettes, legend=False, lw=3)
-    sort_idx = np.argsort(x[:, 0])
-    x = x[:, 0][sort_idx]
-    y_gt_lower = y_gt_lower[sort_idx]
-    y_gt_upper = y_gt_upper[sort_idx]
-    plt.plot(x, y_gt_lower, color='#4E4F97', linewidth=4)
-    plt.plot(x, y_gt_upper, color='#4E4F97', linewidth=4)
-    # sns.lineplot(x='x', y='y3', data=all_data, hue='method', palette=palettes, legend=False, lw=3)
-
-    plt.xticks(np.linspace(L, R, num=5))
-    plt.xlim([L - 0.1, R + 0.1])
-    plt.savefig('figures/curve_{}_{}_{}_{}.pdf'.format(a, b, L, R), bbox_inches='tight')
-    plot_legends()
+    plt.xticks(fontsize=18)
+    plt.yticks(fontsize=18)
+    plt.xscale('log', basex=2) 
+    plt.xlabel('NN Hidden Size', fontsize=26)
+    plt.ylabel('Average Length', fontsize=26)
+    plt.title('Ave. Length v.s. Model Capacity', fontsize=28)
+    plt.savefig(f'./results/nn_capacity_{dataset_name}.pdf')
     plt.close()
-
-
-def plot_legends():
-    legends = {
-        'Split Conformal': 'Split Conformal',
-        "KNN Diff": 'Localization',
-        'Ground Truth': 'Ground Truth'
-    }
-
-    import pylab
-    fig = pylab.figure()
-    legend_fig = pylab.figure()
-
-    all_list_keys = ['Split Conformal', 'KNN Diff', 'Ground Truth']
-
-    for key in all_list_keys:
-        fig.gca().plot(range(10), pylab.randn(10), color=palettes[key], label=legends[key], ls='-', lw=3)
-
-    legend = pylab.figlegend(*fig.gca().get_legend_handles_labels(), fontsize=8.5, loc='center', frameon=False)
-
-    legend_fig.canvas.draw()
-    legend_fig.savefig('figures/%s.pdf'%('legend'), bbox_inches=legend.get_window_extent().transformed(legend_fig.dpi_scale_trans.inverted()))

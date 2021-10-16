@@ -5,12 +5,13 @@ import pdb
 import torch
 import numpy as np
 import torch.nn as nn
+import config
 from cqr import helper
 from sklearn.model_selection import train_test_split
 
 
 if torch.cuda.is_available():
-    device = "cuda:0"
+    device = "cuda:" + str(config.UtilsParams.gpu)
 else:
     device = "cpu"
 

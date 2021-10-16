@@ -614,7 +614,7 @@ class RegressorNc(BaseModelNc):
 		final_weights = final_weights / np.expand_dims(np.sum(final_weights, axis=1), axis=1)
 		return idx, final_weights
 
-	def ldcp_equal_weights(self, x):
+	def slcp_equal_weights(self, x):
 		alpha_hi = 1 - config.ConformalParams.alpha / 2
 		alpha_lo = 1 - config.ConformalParams.alpha / 2
 		idx = self.knn(x)
@@ -649,7 +649,7 @@ class RegressorNc(BaseModelNc):
 		err_ref_q[:, 1] = np.sum(weights * err_hi, axis=1)
 		return err_ref_q
 
-	def ldcp_rbf_weights(self, x):
+	def slcp_rbf_weights(self, x):
 		alpha_hi = 1 - config.ConformalParams.alpha / 2
 		alpha_lo = 1 - config.ConformalParams.alpha / 2
 		idx, weights = self.kernel_smoothing(x)
@@ -704,9 +704,9 @@ class RegressorNc(BaseModelNc):
 			# err_dist = self.err_func.apply_inverse(nc, significance) # FIXME: assymetric
 			if self.local:
 				if self.get_kernel():
-					err_ref_q = self.ldcp_rbf_weights(x)
+					err_ref_q = self.slcp_rbf_weights(x)
 				else:
-					err_ref_q = self.ldcp_equal_weights(x)
+					err_ref_q = self.slcp_equal_weights(x)
 				# this is for symmetric case
 				ErrFunc = QuantileRegErrFunc()
 				d = ErrFunc.apply_inverse(nc=nc, significance=significance)

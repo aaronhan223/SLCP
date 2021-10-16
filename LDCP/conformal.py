@@ -23,13 +23,13 @@ class ConformalPred:
         self.y_train = y_train
         self.y_test = y_test
 
-        if method == 'ldcp':
+        if method == 'slcp':
             local = True
             nc = RegressorNc(model, local, k, err_func=QuantileRegAsymmetricErrFunc(), alpha=config.ConformalParams.alpha, model_2=model_2, gamma=gamma)
-        elif method == 'ldcp-rbf':
+        elif method == 'slcp-rbf':
             local = True
             nc = RegressorNc(model, local, k, err_func=QuantileRegAsymmetricErrFunc(), mean=False, rbf_kernel=True, alpha=config.ConformalParams.alpha, model_2=model_2, gamma=gamma)
-        elif method == 'ldcp-mean':
+        elif method == 'slcp-mean':
             local = True
             nc = RegressorNc(model, local, k, err_func=QuantileRegAsymmetricErrFunc(), rbf_kernel=True, alpha=config.ConformalParams.alpha, model_2=model_2, gamma=gamma)
         elif method == 'cqr':
