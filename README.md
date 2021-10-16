@@ -1,5 +1,5 @@
-# LDCP
-This repository is an implementation of the submission Conformal Prediction with Localized De-correlation. 
+# SLCP
+This repository is an implementation of the submission **Split Localized Conformal Prediction**. 
 
 To set up the environment, run:
 ```
@@ -10,7 +10,7 @@ then activate the environment:
 conda activate conformal
 ```
 
-To reproduce all results reported in the paper, under the [LDCP folder](./LDCP), run
+To run all experiments mentioned in the paper, first change UtilsParams.experiment in [config.py](./SLCP/config.py) into corresponding name of the experiment (available choice: "prediction", "cov_shift", "toy_plot", "nn_capacity"), then run
 ```
 python -W ignore run_all_experiments.py
 ```
