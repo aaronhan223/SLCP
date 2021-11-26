@@ -47,7 +47,7 @@ if __name__ == '__main__':
                       'kde'
                       ]
         method_name = [
-                       'slcp', 
+                       'slcp-knn', 
                        'slcp-rbf', 
                        'slcp-mean',
                        'cqr', 

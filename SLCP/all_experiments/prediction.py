@@ -129,10 +129,10 @@ def run_pred_experiment(dataset_name, model_name, method_name, random_seed, conf
         predictions = model.predict(X_test)
         y_lower, y_upper = predictions[:, 0], predictions[:, 1]
 
-    name_map = {'slcp-rbf': 'SLCP', 'cqr': 'CQR', 'split': 'Split Conformal'}
-    color_map = {'slcp-rbf': 'gray', 'cqr': 'lightblue', 'split': 'tomato'}
-    model_map = {'random_forest': 'Random Forest', 'linear': 'Linear Regression'}
-    estimator_map = {'slcp-rbf': 'quantile', 'cqr': 'quantile', 'split': 'mean'}
+    # name_map = {'slcp-rbf': 'SLCP', 'cqr': 'CQR', 'split': 'Split Conformal'}
+    color_map = {'slcp-knn': 'gray', 'slcp-rbf': 'gray', 'slcp-mean': 'gray', 'cqr': 'lightblue', 'cqr-asy': 'lightblue', 'split': 'tomato', 'lacp': 'tomato', 'qr': 'tomato'}
+    model_map = {'random_forest': 'Random Forest', 'linear': 'Linear Regression', 'neural_net': 'Neural Network', 'kde': 'Constant'}
+    estimator_map = {'slcp-knn': 'quantile', 'slcp-rbf': 'quantile', 'slcp-mean': 'mean', 'cqr': 'quantile', 'cqr-asy': 'quantile', 'split': 'mean', 'lacp': 'mean', 'qr': 'quantile'}
     pred = model.predict(X_test)
     if 'simulation' in dataset_name:
         plot_pred(x=X_test, 
@@ -141,8 +141,8 @@ def run_pred_experiment(dataset_name, model_name, method_name, random_seed, conf
                   y_l=y_lower, 
                   pred=pred, 
                   shade_color=color_map[method_name], 
-                  method_name=name_map[method_name] + ":", 
-                  title=f"{name_map[method_name]} {model_map[model_name]} ({estimator_map[method_name]} regression)",
+                  method_name=method_name + ":", 
+                  title=f"{method_name} {model_map[model_name]} ({estimator_map[method_name]} regression)",
                   filename=os.path.join('./results', method_name + '_' + model_name + '_' + dataset_name + '.pdf'), 
                   save_figures=config.UtilsParams.save_figures)
 

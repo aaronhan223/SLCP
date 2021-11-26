@@ -23,7 +23,7 @@ class ConformalPred:
         self.y_train = y_train
         self.y_test = y_test
 
-        if method == 'slcp':
+        if method == 'slcp-knn':
             local = True
             nc = RegressorNc(model, local, k, err_func=QuantileRegAsymmetricErrFunc(), alpha=config.ConformalParams.alpha, model_2=model_2, gamma=gamma)
         elif method == 'slcp-rbf':

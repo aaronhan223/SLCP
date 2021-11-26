@@ -8,14 +8,14 @@ __pycache__/
 .vscode/
 
 # Interim results
-LDCP/results/
+SLCP/results/
 
 # Large dataset
-LDCP/datasets/facebook/Features_Variant_1.csv
-LDCP/datasets/facebook/Features_Variant_2.csv
-LDCP/datasets/blogData_train.csv
-LDCP/get_meps_data/h181.csv
-LDCP/get_meps_data/h192.csv
-LDCP/datasets/meps_19_reg.csv
-LDCP/datasets/meps_20_reg.csv
-LDCP/datasets/meps_21_reg.csv
+SLCP/datasets/facebook/Features_Variant_1.csv
+SLCP/datasets/facebook/Features_Variant_2.csv
+SLCP/datasets/blogData_train.csv
+SLCP/get_meps_data/h181.csv
+SLCP/get_meps_data/h192.csv
+SLCP/datasets/meps_19_reg.csv
+SLCP/datasets/meps_20_reg.csv
+SLCP/datasets/meps_21_reg.csv
