@@ -10,9 +10,11 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
 import logging
 import copy
+import sys
 logger = logging.getLogger('SLCP.prediction')
 base_dataset_path = './datasets/'
 pd.set_option('precision', 3)
+import pdb
 
 
 def run_pred_experiment(dataset_name, model_name, method_name, random_seed, conformal):
@@ -37,18 +39,29 @@ def run_pred_experiment(dataset_name, model_name, method_name, random_seed, conf
         n_train = X_train.shape[0]
     idx = np.random.permutation(n_train)
     n_half = int(np.floor(n_train * config.ConformalParams.valid_ratio))
-    idx_train = idx[:n_half]
+    idx_train, idx_cal = idx[:n_half], idx[n_half:]
 
     # zero mean and unit variance scaling of the train and test features
     scalerX = StandardScaler()
     scalerX = scalerX.fit(X_train[idx_train])
     X_train = scalerX.transform(X_train)
     X_test = scalerX.transform(X_test)
-    
+
     # scale the labels by dividing each by the mean absolute response
     mean_ytrain = np.mean(np.abs(y_train[idx_train]))
     y_train = np.squeeze(y_train)/mean_ytrain
     y_test = np.squeeze(y_test)/mean_ytrain
+
+    ############
+    save_path = '/home/xhan/SLCP/SLCP/datasets/saved_data'
+    x_train, x_cal = X_train[idx_train], X_train[idx_cal]
+    y_train, y_cal = y_train[idx_train], y_train[idx_cal]
+    if len(y_train.shape) == 1:
+        y_train = np.expand_dims(y_train, 1)
+        y_cal = np.expand_dims(y_cal, 1)
+        y_test = np.expand_dims(y_test, 1)
+    np.savez(os.path.join(save_path, dataset_name + '.npz'), x_train=x_train, x_cal=x_cal, x_test=X_test, y_train=y_train, y_cal=y_cal, y_test=y_test)
+    sys.exit()
 
     if model_name == 'random_forest':
         if conformal and method_name in ['split', 'lacp', 'slcp-mean']:

@@ -7,7 +7,10 @@ import config
 import copy
 import numpy as np
 from tqdm import tqdm
+import time
+import logging
 import pdb
+logger = logging.getLogger('SLCP.conformal')
 
 
 class ConformalPred:
@@ -53,12 +56,15 @@ class ConformalPred:
         else:
             n_train = x_train.shape[0]
         idx = np.random.permutation(n_train)
-        n_half = int(np.floor(n_train * ratio))
+        n_half = int(np.floor(n_train * (1 - ratio)))
         self.idx_train, self.idx_cal = idx[:n_half], idx[n_half:]
 
     def fit(self):
         self.icp.fit(self.x_train[self.idx_train], self.y_train[self.idx_train])
+        start = time.time()
         self.icp.calibrate(self.x_train[self.idx_cal], self.y_train[self.idx_cal])
+        time_length = time.time() - start
+        logger.info(f"Calibration time: {np.round(time_length, 4)}")
 
     def predict(self):
         predictions = self.icp.predict(self.x_test, significance=config.ConformalParams.alpha)

@@ -3,6 +3,8 @@ import numpy as np
 from scipy.stats import beta
 from sklearn.model_selection import train_test_split
 import config
+import os
+import sys
 import pdb
 
 
@@ -388,7 +390,8 @@ def GetDataset(name, base_path, seed, test_ratio, a=1., b=1.):
 
     if name=="bio":
         #https://github.com/joefavergel/TertiaryPhysicochemicalProperties/blob/master/RMSD-ProteinTertiaryStructures.ipynb
-        df = pd.read_csv(base_path + 'CASP.csv')        
+        df = pd.read_csv(base_path + 'CASP.csv')       
+        df.fillna(0, inplace=True) 
         y = df.iloc[:,0].values
         X = df.iloc[:,1:].values        
         x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=test_ratio, random_state=seed)
@@ -453,5 +456,5 @@ def GetDataset(name, base_path, seed, test_ratio, a=1., b=1.):
         X = data.iloc[:, 0:100].values
         y = data.iloc[:, 100].values
         x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=test_ratio, random_state=seed)
-
+    
     return x_train, x_test, y_train, y_test

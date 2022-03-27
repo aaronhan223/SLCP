@@ -73,21 +73,19 @@ class BaseIcp(BaseEstimator):
 		'''
 		Compute k-th nearest neighbours of given sample in the reference dataset.
 		'''
-		diff = x[:, None, :] - self.x_ref[None, :, :]
+		diff = x[:, None, :] - self.x_ref[None, np.random.choice(self.x_ref.shape[0], self.k), :]
 		dist = np.sum(diff ** 2, axis=-1)
-		idx = np.argsort(dist, axis=-1)[:, :self.k]
+		idx = np.argsort(dist, axis=-1)
 		return idx
 
 	def kernel_smoothing(self, x):
-		diff = x[:, None, :] - self.x_ref[None, :, :]
+		diff = x[:, None, :] - self.x_ref[None, np.random.choice(self.x_ref.shape[0], self.k), :]
 		dist = np.sum(diff ** 2, axis=-1)
-		idx = np.argsort(dist, axis=-1)[:, :self.k]
+		idx = np.argsort(dist, axis=-1)
 		h = np.quantile(dist, 0.5) / np.log(diff.shape[1])
 		# h = np.quantile(np.sort(dist, axis=-1)[:, :self.k], 0.5) / np.log(self.k)
-		weights = np.exp(-dist / h)
-		weights[:, ::-1].sort(axis=1)
-		final_weights = weights[:, :self.k]
-		final_weights = final_weights / np.expand_dims(np.sum(final_weights, axis=1), axis=1)
+		weights = np.array(list(map(lambda x, y: y[x], idx, np.exp(-dist / h))))
+		final_weights = weights / np.expand_dims(np.sum(weights, axis=1), axis=1)
 		return idx, final_weights
 	
 	def slcp_equal_weights(self, x):
