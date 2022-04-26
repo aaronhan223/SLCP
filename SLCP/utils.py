@@ -7,6 +7,9 @@ import logging
 import pandas as pd
 import seaborn as sns 
 import config
+import os
+from torchvision.io import read_image
+from torch.utils.data import Dataset
 import pdb
 
 
@@ -35,6 +38,32 @@ def set_logger(log_path):
     file_handler = logging.FileHandler(log_path)
     file_handler.setFormatter(fmt)
     _logger.addHandler(file_handler)
+
+
+class ImageLoader(Dataset):
+    def __init__(self, annotations_file, img_dir, transform=None, target_transform=None):
+        self.img_labels = pd.read_csv(annotations_file, index_col=0)
+        self.img_dir = img_dir
+        self.transform = transform
+        self.target_transform = target_transform
+
+    def __len__(self):
+        return len(self.img_labels)
+
+    def __getitem__(self, idx):
+        img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 0])
+        image = read_image(img_path)
+        label = self.img_labels.iloc[idx, 1]
+        if self.transform:
+            image = self.transform(image)
+        if self.target_transform:
+            label = self.target_transform(label)
+        print(image.shape)
+        print(label)
+        print(img_path)
+        print('idx', idx)
+        print('-------')
+        return image, label
 
 
 def plot_pred(x, y, y_u=None, y_l=None, pred=None, y_u_2=None, y_l_2=None, gt_u=None, gt_l=None, shade_color="", method_name="", title="", filename=None, save_figures=True):

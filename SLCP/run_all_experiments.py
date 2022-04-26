@@ -12,7 +12,7 @@ import pandas as pd
 import logging
 import os
 import pdb
-# test update
+
 logger = logging.getLogger('SLCP.main')
 
 
