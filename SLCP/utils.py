@@ -10,6 +10,7 @@ import config
 import os
 from torchvision.io import read_image
 from torch.utils.data import Dataset
+from torchvision import transforms
 import pdb
 
 
@@ -52,18 +53,21 @@ class ImageLoader(Dataset):
 
     def __getitem__(self, idx):
         img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 0])
-        image = read_image(img_path)
+        image = read_image(img_path).type(torch.FloatTensor)
         label = self.img_labels.iloc[idx, 1]
         if self.transform:
+            if image.shape[0] == 1:
+                image = image.repeat(3, 1, 1)
             image = self.transform(image)
         if self.target_transform:
             label = self.target_transform(label)
-        print(image.shape)
-        print(label)
-        print(img_path)
-        print('idx', idx)
-        print('-------')
-        return image, label
+        # print(image)
+        # print(image.shape)
+        # print(label)
+        # print(img_path)
+        # print('idx', idx)
+        # print('-------')
+        return {'image': image, 'label': label}
 
 
 def plot_pred(x, y, y_u=None, y_l=None, pred=None, y_u_2=None, y_l_2=None, gt_u=None, gt_l=None, shade_color="", method_name="", title="", filename=None, save_figures=True):
