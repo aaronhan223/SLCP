@@ -20,6 +20,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import pdb
 from utils import ImageLoader
+from tqdm import tqdm
 cuda = torch.cuda.is_available()
 from sklearn.model_selection import train_test_split
 
@@ -50,18 +51,6 @@ class AgeModel(nn.Module):
         super().__init__()
         layers = list(resnet(pretrained=True).children())[:-2]
         layers += [AdaptiveConcatPool2d(), Flatten()]
-        #layers += [nn.BatchNorm1d(4096, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)]
-        #layers += [nn.Dropout(p=0.60)]
-        #layers += [nn.Linear(4096, 1024, bias=True), nn.ReLU(inplace=True)]
-        #layers += [nn.BatchNorm1d(2048, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)]
-        #layers += [nn.Dropout(p=0.60)]
-        #layers += [nn.Linear(2048, 1024, bias=True), nn.ReLU(inplace=True)]
-        #layers += [nn.BatchNorm1d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)]
-        #layers += [nn.Dropout(p=0.75)]
-        #layers += [nn.Linear(1024, 256, bias=True), nn.ReLU(inplace=True)]
-        #layers += [nn.BatchNorm1d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)]
-        #layers += [nn.Dropout(p=0.50)]
-        #layers += [nn.Linear(512,256 , bias=True), nn.ReLU(inplace=True)]
         layers += [nn.BatchNorm1d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)]
         layers += [nn.Dropout(p=0.50)]
         layers += [nn.Linear(1024, 512, bias=True), nn.ReLU(inplace=True)]
@@ -72,7 +61,7 @@ class AgeModel(nn.Module):
         if not embedding:
             self.agemodel = nn.Sequential(*layers)
         else:
-            self.agemodel = nn.Sequential(*layers[-2])
+            self.agemodel = nn.Sequential(*layers[:-2])
     def forward(self, x):
         return self.agemodel(x).squeeze(-1)
 
@@ -83,16 +72,21 @@ def resnet(pretrained=False):
     return model
 
 
-def evaluate(data_loader, model):
+def evaluate(data_loader, num_sample, bs, model):
     model.eval()
-    all_data = next(iter(data_loader))
-    inputs = torch.Tensor(all_data['image'].float())
-    results = torch.Tensor(all_data['label'].float())
-    if cuda:
-        inputs, results = inputs.cuda(), results.cuda()
-    predictions = torch.squeeze(model(inputs))
-    loss = F.mse_loss(predictions, results)
-    return loss.data, predictions
+    total_loss, all_predictions = 0.0, torch.zeros(num_sample)
+    for i, batch_data in enumerate(data_loader):
+        inputs = torch.Tensor(batch_data['image'].float())
+        results = torch.Tensor(batch_data['label'].float())
+        if cuda:
+            inputs, results = inputs.cuda(), results.cuda()
+        print('i:', i)
+        print('input shape:', inputs.shape)
+        predictions = model(inputs)
+        all_predictions[i * bs: i * bs + len(results)] = predictions
+        loss = F.mse_loss(predictions, results)
+        total_loss += loss.data
+    return loss.data, all_predictions
 
 
 def train_epoch(train_loader, model, optimizer):
@@ -105,7 +99,6 @@ def train_epoch(train_loader, model, optimizer):
             inputs, results = inputs.cuda(), results.cuda()
         optimizer.zero_grad()
         predictions = model(inputs)
-        predictions = torch.squeeze(predictions)
         loss = F.mse_loss(predictions, results)
         loss.backward()
         optimizer.step()
@@ -122,6 +115,7 @@ def main():
     img_list = pd.read_csv('./datasets/img_labels.csv', index_col=0)
     train, test = train_test_split(np.arange(img_list.shape[0]), test_size=config.DataParams.test_ratio, random_state=42)
     train_idx, valid_idx, test_idx = train[:int(0.5 * len(train))], train[int(0.5 * len(train)):], test
+    num_train, num_valid, num_test = len(train_idx), len(valid_idx), len(test_idx)
     img_list_train, img_list_valid, img_list_test = img_list.iloc[train_idx], img_list.iloc[valid_idx], img_list.iloc[test_idx]
     img_list_train.to_csv('./datasets/img_labels_train.csv')
     img_list_valid.to_csv('./datasets/img_labels_valid.csv')
@@ -170,16 +164,16 @@ def main():
                                                         )
                                                     )    
     train_loader = DataLoader(ImageDataset_train, batch_size=batch_size, num_workers=0, shuffle=True)
-    valid_loader = DataLoader(ImageDataset_valid, batch_size=len(ImageDataset_valid), num_workers=0, shuffle=True)
-    test_loader = DataLoader(ImageDataset_test, batch_size=len(ImageDataset_test), num_workers=0, shuffle=True)
+    valid_loader = DataLoader(ImageDataset_valid, batch_size=batch_size, num_workers=0, shuffle=True)
+    test_loader = DataLoader(ImageDataset_test, batch_size=batch_size, num_workers=0, shuffle=True)
     model = AgeModel()
     if cuda:
         model = model.cuda()
     optimizer = optim.Adam(model.parameters(), lr=1e-2, betas=(0.9, 0.99), eps=1e-5)
     best_loss = 1e10
-    for i in range(1, num_epoch + 1):
+    for i in tqdm(range(1, num_epoch + 1)):
         train_loss = train_epoch(train_loader, model, optimizer)
-        valid_loss, _ = evaluate(valid_loader, model)
+        valid_loss, _ = evaluate(valid_loader, num_valid, batch_size, model)
         if valid_loss < best_loss:
             best_loss = valid_loss
             torch.save({'epoch': i, 'model_state_dict': model.state_dict(), 'optimizer_state_dict': optimizer.state_dict()}, 
