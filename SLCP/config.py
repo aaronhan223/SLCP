@@ -4,7 +4,7 @@ class ConformalParams:
     alpha = 0.1 # desired miscoverage error
     quantiles = [5, 95] # low and high target quantiles
     k = 300
-    valid_ratio = 0.2
+    valid_ratio = 0.5
 
 
 class RandomForecastParams:

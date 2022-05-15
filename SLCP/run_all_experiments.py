@@ -1,4 +1,4 @@
-from all_experiments.prediction import run_pred_experiment
+from all_experiments.prediction import run_pred_experiment, run_age_pred
 from all_experiments.cov_shift import run_cov_shift
 from all_experiments.model_bias import run_model_bias
 from all_experiments.nn_capacity import run_nn_capacity
@@ -39,19 +39,21 @@ if __name__ == '__main__':
                         # 'blog_data', 
                         # 'bike', 
                         # 'concrete', 
-                        'community'
+                        # 'community',
+                        'age'
                         ]
         model_list = [
                     #   'random_forest', 
                     #   'linear', 
-                      'neural_net',
-                    #   'kde'
+                    #   'neural_net',
+                    #   'kde',
+                      'age_regr'
                       ]
         method_name = [
                        'slcp-knn', 
                        'slcp-rbf', 
                        'slcp-mean',
-                       'cqr', 
+                    #    'cqr', 
                     #    'cqr-asy', 
                     #    'split', 
                     #    'lacp', 
@@ -66,11 +68,17 @@ if __name__ == '__main__':
                     logger.info('~~~~~~~~~~~~~~~~~~~~~~~~~~')
                     logger.info(f'Dataset: {data} | Model: {model} | Method: {method}.')
                     is_cp = False if method == 'qr' else True
-                    cov_rate, length = run_pred_experiment(dataset_name=data, 
-                                                            model_name=model, 
-                                                            method_name=method, 
-                                                            random_seed=config.UtilsParams.seed,
-                                                            conformal=is_cp)
+                    if data != 'age':
+                        cov_rate, length = run_pred_experiment(dataset_name=data, 
+                                                                model_name=model, 
+                                                                method_name=method, 
+                                                                random_seed=config.UtilsParams.seed,
+                                                                conformal=is_cp)
+                    else:
+                        cov_rate, length = run_age_pred(dataset_name=data, 
+                                                        model_name=model, 
+                                                        method_name=method, 
+                                                        random_seed=config.UtilsParams.seed)
                     all_cov_rate[i, j] += cov_rate
                     all_length[i, j] += length
                 logger.info('=======================================================================')

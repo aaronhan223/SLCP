@@ -13,7 +13,7 @@ import config
 import pdb
 from nonconformist.base import ClassifierAdapter, RegressorAdapter
 from nonconformist.base import OobClassifierAdapter, OobRegressorAdapter
-
+import torch
 # -----------------------------------------------------------------------------
 # Error functions
 # -----------------------------------------------------------------------------
@@ -391,7 +391,7 @@ class BaseModelNc(BaseScorer):
 		the normalized nonconformity function approaches a non-normalized
 		equivalent.
 	"""
-	def __init__(self, model, local, k, err_func, mean=True, rbf_kernel=False, alpha=0.1, normalizer=None, beta=1e-6, model_2=None, gamma=1.):
+	def __init__(self, model, local, k, err_func, image=False, mean=True, rbf_kernel=False, alpha=0.1, normalizer=None, beta=1e-6, model_2=None, gamma=1.):
 		super(BaseModelNc, self).__init__()
 		self.err_func = err_func
 		self.model = model
@@ -404,6 +404,7 @@ class BaseModelNc(BaseScorer):
 		self.gamma = gamma
 		self.kernel = rbf_kernel
 		self.mean = mean
+		self.image = image
 
 		# If we use sklearn.base.clone (e.g., during cross-validation),
 		# object references get jumbled, so we need to make sure that the
@@ -431,14 +432,16 @@ class BaseModelNc(BaseScorer):
 		-------
 		None
 		"""
-		self.model.fit(x, y)
-		if self.normalizer is not None:
-			self.normalizer.fit(x, y)
-		if self.model_2 is not None:
-			self.model_2.fit(x, y)
+		if not self.image:
+			self.model.fit(x, y)
+			if self.normalizer is not None:
+				self.normalizer.fit(x, y)
+			if self.model_2 is not None:
+				self.model_2.fit(x, y)
 		self.clean = False
 		if self.local:
 			self.x_ref = x
+			self.x_ref = self.x_ref.numpy()
 			self.error_ref = self.score(x, y)
 			return self.error_ref
 
@@ -458,7 +461,14 @@ class BaseModelNc(BaseScorer):
 		nc : numpy array of shape [n_samples]
 			Nonconformity scores of samples.
 		"""
-		prediction = self.model.predict(x)
+		if not self.image:
+			prediction = self.model.predict(x)
+		else:
+			if not isinstance(x, torch.Tensor):
+				x = torch.from_numpy(x)
+			x = x.cuda()
+			prediction = self.model(x)
+			prediction = prediction.cpu().detach().numpy()
 		if self.local and prediction.ndim == 1:
 			prediction = np.transpose(np.vstack([prediction] * 2))
 		n_test = x.shape[0]
@@ -565,6 +575,7 @@ class RegressorNc(BaseModelNc):
 				 local,
 				 k,
 	             err_func,
+				 image=False,
 				 mean=True,
 				 rbf_kernel=False,
 				 alpha=0.1,
@@ -576,6 +587,7 @@ class RegressorNc(BaseModelNc):
 										  local,
 										  k,
 		                                  err_func,
+										  image,
 										  mean,
 										  rbf_kernel,
 										  alpha,
@@ -586,6 +598,7 @@ class RegressorNc(BaseModelNc):
 		self.alpha = alpha
 		self.kernel = rbf_kernel
 		self.mean = mean
+		self.image = image
 
 	def get_kernel(self):
 		return self.kernel
@@ -686,7 +699,16 @@ class RegressorNc(BaseModelNc):
 			significance level.
 		"""
 		n_test = x.shape[0]
-		prediction = self.model.predict(x)
+		if not self.image:
+			prediction = self.model.predict(x)
+		else:
+			if not isinstance(x, torch.Tensor):
+				x = torch.from_numpy(x)
+			x = x.cuda()
+			prediction = self.model(x)
+			prediction = prediction.cpu().detach().numpy()
+			x = x.cpu().detach().numpy()
+
 		if self.model_2 is not None:
 			prediction_2 = self.model_2.predict(x)
 			prediction_2 = np.transpose(np.vstack([prediction_2] * 2))

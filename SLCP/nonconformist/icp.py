@@ -66,6 +66,7 @@ class BaseIcp(BaseEstimator):
 		if self.local:
 			self.error_ref = self.nc_function.fit(x, y)
 			self.x_ref = x
+			self.x_ref = self.x_ref.numpy()
 		else:
 			self.nc_function.fit(x, y)
 

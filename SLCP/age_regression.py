@@ -75,17 +75,16 @@ def resnet(pretrained=False):
 def evaluate(data_loader, num_sample, bs, model):
     model.eval()
     total_loss, all_predictions = 0.0, torch.zeros(num_sample)
-    for i, batch_data in enumerate(data_loader):
-        inputs = torch.Tensor(batch_data['image'].float())
-        results = torch.Tensor(batch_data['label'].float())
-        if cuda:
-            inputs, results = inputs.cuda(), results.cuda()
-        print('i:', i)
-        print('input shape:', inputs.shape)
-        predictions = model(inputs)
-        all_predictions[i * bs: i * bs + len(results)] = predictions
-        loss = F.mse_loss(predictions, results)
-        total_loss += loss.data
+    with torch.no_grad():
+        for i, batch_data in enumerate(data_loader):
+            inputs = torch.Tensor(batch_data['image'].float())
+            results = torch.Tensor(batch_data['label'].float())
+            if cuda:
+                inputs, results = inputs.cuda(), results.cuda()
+            predictions = model(inputs)
+            all_predictions[i * bs: i * bs + len(results)] = predictions
+            loss = F.mse_loss(predictions, results)
+            total_loss += loss.data
     return loss.data, all_predictions
 
 
@@ -110,7 +109,7 @@ def main():
     seed = 42
     np.random.seed(seed)
     batch_size = 32
-    num_epoch = 200
+    num_epoch = 1000
 
     img_list = pd.read_csv('./datasets/img_labels.csv', index_col=0)
     train, test = train_test_split(np.arange(img_list.shape[0]), test_size=config.DataParams.test_ratio, random_state=42)
@@ -122,19 +121,19 @@ def main():
     img_list_test.to_csv('./datasets/img_labels_test.csv')
 
     ImageDataset_train = ImageLoader(annotations_file='./datasets/img_labels_train.csv',
-                                img_dir='/mnt/d64c1162-08cc-4571-90a3-04c60b6f6f66/xing/wiki_utk',
-                                transform=torch.nn.Sequential(
-                                                    transforms.RandomRotation(degrees=10),
-                                                    transforms.RandomHorizontalFlip(),
-                                                    transforms.RandomApply(
-                                                        torch.nn.ModuleList([
-                                                            transforms.ColorJitter(brightness=(0.3, 0.60), contrast=(0.5, 2)),
-                                                            ]), p=0.7),
-                                                    transforms.RandomCrop(size=600, pad_if_needed=True, padding_mode='edge'),
-                                                    transforms.Resize(128),
-                                                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+                                    img_dir='/mnt/d64c1162-08cc-4571-90a3-04c60b6f6f66/xing/wiki_utk',
+                                    transform=torch.nn.Sequential(
+                                                        transforms.RandomRotation(degrees=10),
+                                                        transforms.RandomHorizontalFlip(),
+                                                        transforms.RandomApply(
+                                                            torch.nn.ModuleList([
+                                                                transforms.ColorJitter(brightness=(0.3, 0.60), contrast=(0.5, 2)),
+                                                                ]), p=0.7),
+                                                        transforms.RandomCrop(size=600, pad_if_needed=True, padding_mode='edge'),
+                                                        transforms.Resize(128),
+                                                        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+                                                        )
                                                     )
-                                                )
     ImageDataset_valid = ImageLoader(annotations_file='./datasets/img_labels_valid.csv',
                                     img_dir='/mnt/d64c1162-08cc-4571-90a3-04c60b6f6f66/xing/wiki_utk',
                                     transform=torch.nn.Sequential(

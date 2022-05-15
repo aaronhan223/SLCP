@@ -19,3 +19,5 @@ SLCP/get_meps_data/h192.csv
 SLCP/datasets/meps_19_reg.csv
 SLCP/datasets/meps_20_reg.csv
 SLCP/datasets/meps_21_reg.csv
+SLCP/saved_models
+SLCP/saved_models_200

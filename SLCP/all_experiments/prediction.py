@@ -1,4 +1,5 @@
 import os
+from age_regression import AgeModel
 import config
 import numpy as np
 import pandas as pd
@@ -8,7 +9,10 @@ from utils import plot_pred, set_seed
 from cqr import helper
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
+from collections import OrderedDict
 import logging
+import torch
+import torch.nn as nn
 import copy
 import sys
 logger = logging.getLogger('SLCP.prediction')
@@ -61,7 +65,7 @@ def run_pred_experiment(dataset_name, model_name, method_name, random_seed, conf
         y_cal = np.expand_dims(y_cal, 1)
         y_test = np.expand_dims(y_test, 1)
     np.savez(os.path.join(save_path, dataset_name + '.npz'), x_train=x_train, x_cal=x_cal, x_test=X_test, y_train=y_train, y_cal=y_cal, y_test=y_test)
-    sys.exit()
+    # sys.exit()
 
     if model_name == 'random_forest':
         if conformal and method_name in ['split', 'lacp', 'slcp-mean']:
@@ -164,3 +168,43 @@ def run_pred_experiment(dataset_name, model_name, method_name, random_seed, conf
     interval_length = y_upper - y_lower
     logger.info(f'{method_name} {model_name} : Average length: {round(np.mean(interval_length), 2)}')
     return round(in_the_range / len(y_test) * 100, 2), round(np.mean(interval_length), 2)
+
+
+def run_age_pred(dataset_name, model_name, method_name, random_seed):
+    set_seed(random_seed)
+    path_to_model = './saved_models/best_model.pt'
+    checkpoint = torch.load(path_to_model)
+    embd_model = AgeModel(embedding=True)
+    model = AgeModel()
+    head_model = AgeModelHead()
+    model.load_state_dict(checkpoint['model_state_dict'])
+    model_dict = model.state_dict()
+    embd_dict_keys = embd_model.state_dict().keys()
+    embd_model_dict, head_model_dict = OrderedDict(), OrderedDict()
+    head_model_dict['agemodelhead.1.weight'] = model_dict['agemodel.18.weight']
+    head_model_dict['agemodelhead.1.bias'] = model_dict['agemodel.18.bias']
+    for key in embd_dict_keys:
+        embd_model_dict[key] = model_dict[key]
+    embd_model.load_state_dict(embd_model_dict)
+    head_model.load_state_dict(head_model_dict)
+    embd_model.cuda()
+    head_model.cuda()
+    cp = ConformalPred(model=head_model, method=method_name, data_name=dataset_name, ratio=config.ConformalParams.valid_ratio, embd_model=embd_model)
+    cp.fit()
+    y_lower, y_upper, y_test = cp.predict()
+    in_the_range = np.sum((y_test >= y_lower) & (y_test <= y_upper))
+    logger.info(f'{method_name} {model_name} : Coverage rate (expecting {100 * (1 - config.ConformalParams.alpha)} %): {round(in_the_range / len(y_test) * 100, 2)}')
+    interval_length = y_upper - y_lower
+    logger.info(f'{method_name} {model_name} : Average length: {round(np.mean(interval_length), 2)}')
+    return round(in_the_range / len(y_test) * 100, 2), round(np.mean(interval_length), 2)
+
+
+class AgeModelHead(nn.Module):
+    def __init__(self):
+        super().__init__()
+        layers = [nn.ReLU(inplace=True)]
+        layers += [nn.Linear(16,1)]
+        self.agemodelhead = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.agemodelhead(x).squeeze(-1)
