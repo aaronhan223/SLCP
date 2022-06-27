@@ -1,5 +1,5 @@
 # SLCP
-This repository is an implementation of the submission **Split Localized Conformal Prediction**. 
+This repository is an implementation of the paper **Split Localized Conformal Prediction**. 
 
 To set up the environment, run:
 ```
